@@ -64,7 +64,7 @@ end;
 
 procedure TMainForm.MTimetableClick(Sender: TObject);
 begin
-  TTimetableForm.Create(Self);
+  TTimetableForm.Create(7);
 end;
 
 end.

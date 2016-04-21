@@ -1,63 +1,95 @@
 object TimetableForm: TTimetableForm
-  Left = 517
-  Height = 437
-  Top = 18
-  Width = 627
+  Left = 298
+  Height = 365
+  Top = 41
+  Width = 625
   Caption = 'Расписание'
-  ClientHeight = 437
-  ClientWidth = 627
-  OnCreate = FormCreate
+  ClientHeight = 365
+  ClientWidth = 625
   LCLVersion = '1.6.0.4'
   Visible = True
   object DrawGrid: TDrawGrid
     Left = 0
-    Height = 288
+    Height = 211
     Top = 0
-    Width = 627
-    Align = alTop
+    Width = 625
+    Align = alClient
+    ColCount = 0
     ExtendedSelect = False
+    FixedCols = 0
+    FixedRows = 0
+    RowCount = 0
     TabOrder = 0
+    OnDrawCell = DrawGridDrawCell
   end
-  object GroupBoxDimensions: TGroupBox
-    Left = 8
-    Height = 120
-    Top = 296
-    Width = 160
-    Caption = 'Измерения'
-    ClientHeight = 100
-    ClientWidth = 156
+  object Panel: TPanel
+    Left = 0
+    Height = 154
+    Top = 211
+    Width = 625
+    Align = alBottom
+    ClientHeight = 154
+    ClientWidth = 625
     TabOrder = 1
-    object ComboBoxHor: TComboBox
-      Left = 8
-      Height = 23
-      Top = 16
-      Width = 142
-      ItemHeight = 15
+    object GroupBoxDimensions: TGroupBox
+      Left = 5
+      Height = 144
+      Top = 5
+      Width = 160
+      Caption = 'Измерения'
+      ClientHeight = 124
+      ClientWidth = 156
       TabOrder = 0
+      object ComboBoxCol: TComboBox
+        Left = 8
+        Height = 23
+        Top = 64
+        Width = 142
+        ItemHeight = 15
+        TabOrder = 0
+      end
+      object LabelHor: TLabel
+        Left = 8
+        Height = 15
+        Top = 48
+        Width = 89
+        Caption = 'По горизонтали'
+        ParentColor = False
+      end
+      object ComboBoxRow: TComboBox
+        Left = 8
+        Height = 23
+        Top = 16
+        Width = 142
+        ItemHeight = 15
+        TabOrder = 1
+      end
+      object LabelVer: TLabel
+        Left = 8
+        Height = 15
+        Top = 0
+        Width = 76
+        Caption = 'По вертикали'
+        ParentColor = False
+      end
+      object ButShowTable: TButton
+        Left = 30
+        Height = 28
+        Top = 92
+        Width = 96
+        Caption = 'Применить'
+        OnClick = ButShowTableClick
+        TabOrder = 2
+      end
     end
-    object LabelHor: TLabel
-      Left = 8
-      Height = 15
-      Top = 0
-      Width = 89
-      Caption = 'По горизонтали'
-      ParentColor = False
-    end
-    object ComboBoxVer: TComboBox
-      Left = 8
-      Height = 23
-      Top = 64
-      Width = 142
-      ItemHeight = 15
-      TabOrder = 1
-    end
-    object LabelVer: TLabel
-      Left = 8
-      Height = 15
-      Top = 48
-      Width = 76
-      Caption = 'По вертикали'
-      ParentColor = False
-    end
+  end
+  object SQLQuery: TSQLQuery
+    FieldDefs = <>
+    Database = DBConnection.IBConnection
+    Transaction = DBConnection.SQLTransaction
+    Options = []
+    Params = <>
+    left = 24
+    top = 128
   end
 end
