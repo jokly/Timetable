@@ -1,0 +1,63 @@
+object TimetableForm: TTimetableForm
+  Left = 517
+  Height = 437
+  Top = 18
+  Width = 627
+  Caption = 'Расписание'
+  ClientHeight = 437
+  ClientWidth = 627
+  OnCreate = FormCreate
+  LCLVersion = '1.6.0.4'
+  Visible = True
+  object DrawGrid: TDrawGrid
+    Left = 0
+    Height = 288
+    Top = 0
+    Width = 627
+    Align = alTop
+    ExtendedSelect = False
+    TabOrder = 0
+  end
+  object GroupBoxDimensions: TGroupBox
+    Left = 8
+    Height = 120
+    Top = 296
+    Width = 160
+    Caption = 'Измерения'
+    ClientHeight = 100
+    ClientWidth = 156
+    TabOrder = 1
+    object ComboBoxHor: TComboBox
+      Left = 8
+      Height = 23
+      Top = 16
+      Width = 142
+      ItemHeight = 15
+      TabOrder = 0
+    end
+    object LabelHor: TLabel
+      Left = 8
+      Height = 15
+      Top = 0
+      Width = 89
+      Caption = 'По горизонтали'
+      ParentColor = False
+    end
+    object ComboBoxVer: TComboBox
+      Left = 8
+      Height = 23
+      Top = 64
+      Width = 142
+      ItemHeight = 15
+      TabOrder = 1
+    end
+    object LabelVer: TLabel
+      Left = 8
+      Height = 15
+      Top = 48
+      Width = 76
+      Caption = 'По вертикали'
+      ParentColor = False
+    end
+  end
+end

@@ -1,0 +1,26 @@
+object MainForm: TMainForm
+  Left = 181
+  Height = 240
+  Top = 20
+  Width = 320
+  Caption = 'Расписание'
+  Menu = MainMenu
+  OnCreate = FormCreate
+  Position = poDesktopCenter
+  LCLVersion = '1.6.0.4'
+  object MainMenu: TMainMenu
+    left = 16
+    top = 8
+    object MTables: TMenuItem
+      Caption = 'Таблицы'
+    end
+    object MTimetable: TMenuItem
+      Caption = 'Расписание'
+      OnClick = MTimetableClick
+    end
+    object MAbout: TMenuItem
+      Caption = 'О программе'
+      OnClick = MAboutClick
+    end
+  end
+end
