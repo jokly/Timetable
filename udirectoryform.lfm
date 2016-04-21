@@ -2,17 +2,17 @@ object DirectoryForm: TDirectoryForm
   Left = 375
   Height = 517
   Top = 114
-  Width = 733
-  ClientHeight = 517
-  ClientWidth = 733
+  Width = 864
+  ClientHeight = 0
+  ClientWidth = 0
   Position = poDesktopCenter
   LCLVersion = '1.6.0.4'
   Visible = True
   object DBGrid: TDBGrid
     Left = 0
-    Height = 300
+    Height = 0
     Top = 0
-    Width = 733
+    Width = 0
     Align = alClient
     Color = clWindow
     Columns = <>
@@ -25,23 +25,23 @@ object DirectoryForm: TDirectoryForm
   object Panel: TPanel
     Left = 0
     Height = 217
-    Top = 300
-    Width = 733
+    Top = -217
+    Width = 0
     Align = alBottom
     ClientHeight = 217
-    ClientWidth = 733
+    ClientWidth = 0
     TabOrder = 1
     object RightScrollBox: TScrollBox
-      Left = 160
+      Left = 0
       Height = 215
       Top = 1
-      Width = 572
-      HorzScrollBar.Page = 205
+      Width = 0
+      HorzScrollBar.Page = 1
       VertScrollBar.Page = 196
       VertScrollBar.Tracking = True
       Align = alClient
-      ClientHeight = 211
-      ClientWidth = 568
+      ClientHeight = 215
+      ClientWidth = 0
       TabOrder = 0
       object CheckListSort: TCheckListBox
         Left = 8
@@ -68,7 +68,7 @@ object DirectoryForm: TDirectoryForm
       end
     end
     object LeftScrollBox: TScrollBox
-      Left = 1
+      Left = 0
       Height = 215
       Top = 1
       Width = 159

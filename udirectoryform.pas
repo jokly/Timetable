@@ -6,17 +6,10 @@ interface
 
 uses
   Classes, SysUtils, sqldb, db, FileUtil, Forms, Controls, Graphics, Dialogs,
-  DBGrids, Menus, Buttons, StdCtrls, CheckLst, ExtCtrls, UMetadata, USQL,
-  UEditCard, UDBConnection, UNotification;
+  DBGrids, Menus, Buttons, StdCtrls, CheckLst, ExtCtrls, UMetadata, UFilter,
+  USQL, UEditCard, UDBConnection, UNotification;
 
 type
-
-  TFilter = record
-    Fields: TComboBox;
-    Operations: TComboBox;
-    Constant: TEdit;
-    DeleteFilter: TBitBtn;
-  end;
 
   { TDirectoryForm }
 
@@ -48,11 +41,9 @@ type
     procedure RDeleteButtonClick(Sender: TObject);
   private
     FBSQL: TSQL;
-    Filters: array of TFilter;
-    CurrentFilterY, SelectedRow: Integer;
+    Filters: TFilters;
+    SelectedRow: Integer;
     procedure OnChangeFilter(Sender: TObject);
-    procedure DeleteFilter(Sender: TObject; Button: TMouseButton;
-       Shift: TShiftState; X, Y: Integer);
     procedure UpdateGrid();
     procedure ChangeCursorPosition(Sender: TObject);
   public
@@ -63,13 +54,6 @@ var
   DirectoryForm: TDirectoryForm;
 
 implementation
-
-const
-  MarginTopFilters = 10;
-  MarginLeftFilters = 10;
-
-var
-  Operations: array[0..6] of String = ('>', '<', '=', '>=', '<=' , '<>', 'LIKE');
 
 {$R *.lfm}
 
@@ -89,9 +73,10 @@ begin
 
   Caption:= Tables[ATableId].TAppName;
   Tag:= ATableId;
-  CurrentFilterY:= 0;
   SelectedRow:= 1;
   TNotification.Subscribe(@FApplyButtonClick);
+
+  Filters:= TFilters.Create(Tag, FApplyButton);
 
   FBSQL:= TSQL.Create;
   FApplyButton.Click;
@@ -114,75 +99,16 @@ begin
 end;
 
 procedure TDirectoryForm.FAddButtonClick(Sender: TObject);
-var
-  Filter: TFilter;
-  i: Integer;
 begin
-  Filter.Fields:= TComboBox.Create(RightScrollBox);
-  with Filter.Fields do begin
-      Left:= CheckListSort.Left + CheckListSort.Width + MarginLeftFilters;
-      Top:= CurrentFilterY + MarginTopFilters;
-      for i:= 1 to DBGrid.Columns.Count - 1 do
-          Items.Add(DBGrid.Columns[i].Title.Caption);
-
-      ItemIndex:= 0;
-      ReadOnly:= True;
-      Parent:= RightScrollBox;
-      OnChange:= @OnChangeFilter;
-  end;
-
-  Filter.Operations:= TComboBox.Create(RightScrollBox);
-  with Filter.Operations do begin
-      Left:= Filter.Fields.Left + Filter.Fields.Width + MarginLeftFilters;
-      Top:= Filter.Fields.Top;
-      for i:= 0 to High(Operations) do
-          Items.Add(Operations[i]);
-      ItemIndex:= 0;
-      ReadOnly:= True;
-      Parent:= RightScrollBox;
-      OnChange:= @OnChangeFilter;
-  end;
-
-  Filter.Constant:= TEdit.Create(RightScrollBox);
-  with Filter.Constant do begin
-      Left:= Filter.Operations.Left + Filter.Operations.Width + MarginLeftFilters;
-      Top:= Filter.Fields.Top;
-      Parent:= RightScrollBox;
-      OnChange:= @OnChangeFilter;
-  end;
-
-  Filter.DeleteFilter:= TBitBtn.Create(RightScrollBox);
-  with Filter.DeleteFilter do begin
-      Left:= Filter.Constant.Left + Filter.Constant.Width + MarginLeftFilters;
-      Top:= Filter.Fields.Top;
-      Glyph.LoadFromFile('img/delete.bmp');
-      Spacing:= 0;
-      Height:= 25;
-      Width:= 25;
-      Parent:= RightScrollBox;
-      Tag:= Length(Filters);
-      OnMouseUp:= @DeleteFilter;
-  end;
-
-  SetLength(Filters, Length(Filters) + 1);
-  Filters[High(Filters)]:= Filter;
-  CurrentFilterY:= Filter.Fields.Top + Filter.Fields.Height;
-  FApplyButton.Enabled:= True;
+  Filters.AddFilter(RightScrollBox, @OnChangeFilter,
+    CheckListSort.Left + CheckListSort.Width);
 end;
 
 procedure TDirectoryForm.FApplyButtonClick(Sender: TObject);
 var
   i: Integer;
-  Conditions: array of TCondition;
   ToOrder: array of String;
 begin
-  SetLength(Conditions, Length(Filters));
-  for i:= 0 to High(Conditions) do begin
-      with Conditions[i], FBSQL.Columns[Filters[i].Fields.ItemIndex + 1] do begin
-          Field:= Tables[TableID].TDBName + '.' + Tables[TableID].Fields[FieldID].FDBName;
-          Operation:= Filters[i].Operations.Text;
-      end;
-  end;
 
   for i:= 0 to CheckListSort.Items.Count - 1 do begin
     if CheckListSort.Checked[i] then begin
@@ -193,10 +119,10 @@ begin
   end;
 
   SQLQuery.Close;
-  SQLQuery.SQL.Text:= FBSQL.SelectAllFrom(Tag).InnerJoin().Where(Conditions).OrderBy(ToOrder).Query;
+  SQLQuery.SQL.Text:= FBSQL.SelectAllFrom(Tag).InnerJoin().Where(Filters.ToConditions()).OrderBy(ToOrder).Query;
   SQLQuery.Prepare;
-  for i:= 0 to High(Filters) do
-      SQLQuery.Params[i].AsString:= Filters[i].Constant.Text;
+  for i:= 0 to High(Filters.Filters) do
+      SQLQuery.Params[i].AsString:= Filters.Filters[i].Constant.Text;
   SQLQuery.Open;
 
   UpdateGrid();
@@ -265,35 +191,6 @@ end;
 
 procedure TDirectoryForm.OnChangeFilter(Sender: TObject);
 begin
-  FApplyButton.Enabled:= True;
-end;
-
-procedure TDirectoryForm.DeleteFilter(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; X, Y: Integer);
-var
-  i: Integer;
-begin
-  for i:= (Sender as TBitBtn).Tag to High(Filters) - 1 do begin
-      Filters[i].Fields.ItemIndex:= Filters[i + 1].Fields.ItemIndex;
-      Filters[i].Operations.ItemIndex:= Filters[i + 1].Operations.ItemIndex;
-      Filters[i].Constant.Text:= Filters[i + 1].Constant.Text;
-      Filters[i].DeleteFilter.Tag:= i;
-  end;
-
-  with Filters[High(Filters)] do begin
-    Fields.Free;
-    Operations.Free;
-    Constant.Free;
-    DeleteFilter.Free;
-  end;
-
-  SetLength(Filters, Length(Filters) - 1);
-
-  if Length(Filters) = 0 then
-     CurrentFilterY:= 0
-  else
-     CurrentFilterY:= Filters[High(Filters)].Fields.Top + Filters[High(Filters)].Fields.Height;
-
   FApplyButton.Enabled:= True;
 end;
 
