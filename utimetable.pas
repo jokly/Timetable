@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, Grids,
-  StdCtrls, ExtCtrls, sqldb, UMetadata, UDBConnection, USQL;
+  StdCtrls, ExtCtrls, sqldb, UMetadata, USQL, UFilter;
 
 type
 
@@ -23,20 +23,26 @@ type
 
   TTimetableForm = class(TForm)
     ButShowTable: TButton;
+    ButtonAddFilter: TButton;
     CheckBoxDisplayFieldName: TCheckBox;
     ComboBoxCol: TComboBox;
     ComboBoxRow: TComboBox;
     DrawGrid: TDrawGrid;
+    GroupBoxFilters: TGroupBox;
     GroupBoxOptions: TGroupBox;
     GroupBoxDimensions: TGroupBox;
     LabelHor: TLabel;
     LabelVer: TLabel;
     Panel: TPanel;
+    PanelLeft: TPanel;
+    ScrollBoxFilters: TScrollBox;
     SQLQuery: TSQLQuery;
     procedure ButShowTableClick(Sender: TObject);
+    procedure ButtonAddFilterClick(Sender: TObject);
     constructor Create(TableIndex: Integer); overload;
     procedure DrawGridDrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
+    procedure OnChangeOption(Sender: TObject);
   private
     { private declarations }
     FTable: array of array of TCell;
@@ -44,11 +50,13 @@ type
     ColTableIndex, RowTableIndex: Integer;
     RowsCaption: TCaps;
     ColumnsCaption: TCaps;
+    Filters: TFilters;
     procedure FillDimensionsComboBox();
     function FillCaptions(TableIndex: Integer; var AFillArray: TCaps): Integer;
     procedure FillTable();
     procedure GetNameFields();
     procedure FillCell(X, Y: Integer);
+    procedure SetWidthCell(AString: String; aCol: Integer);
   public
     { public declarations }
   end;
@@ -66,7 +74,7 @@ constructor TTimetableForm.Create(TableIndex: Integer);
 begin
   inherited Create(Application);
   Tag:= TableIndex;
-
+  Filters:= TFilters.Create(Tag, ButShowTable);
   FillDimensionsComboBox();
 end;
 
@@ -81,16 +89,16 @@ begin
   if (aRow = 0) and (aCol = 0) then
     Exit;
 
-  HeightCell:= 300;
-  WidthCell:= 300;
-  DrawGrid.ColWidths[aCol]:= WidthCell;
+  HeightCell:= 200;
 
   if aCol = 0 then begin
     DrawGrid.RowHeights[aRow]:= HeightCell;
+    SetWidthCell(RowsCaption[aRow - 1].Value, aCol);
     DrawGrid.Canvas.TextOut(aRect.Left + 5, aRect.Top + 2, RowsCaption[aRow - 1].Value);
   end
   else if aRow = 0 then begin
     DrawGrid.RowHeights[aRow]:= 50;
+    SetWidthCell(ColumnsCaption[aCol - 1].Value, aCol);
     DrawGrid.Canvas.TextOut(aRect.Left + 5, aRect.Top + 2, ColumnsCaption[aCol - 1].Value);
   end
   else begin
@@ -103,6 +111,7 @@ begin
         if CheckBoxDisplayFieldName.Checked then
           Str:= FieldsName[j] + ': ';
         Str += FRecord[j];
+        SetWidthCell(Str, aCol);
         DrawGrid.Canvas.TextOut(aRect.Left + 5, aRect.Top + MarginTop, Str);
         MarginTop+= 2 + 16;
       end;
@@ -117,6 +126,20 @@ begin
   end;
 end;
 
+procedure TTimetableForm.SetWidthCell(AString: String; aCol: Integer);
+var
+  WidthCell: Integer;
+begin
+  WidthCell:= DrawGrid.Canvas.TextWidth(AString);
+  if WidthCell > DrawGrid.ColWidths[aCol] then
+    DrawGrid.ColWidths[aCol]:= WidthCell + 10;
+end;
+
+procedure TTimetableForm.OnChangeOption(Sender: TObject);
+begin
+  ButShowTable.Enabled:= True;
+end;
+
 procedure TTimetableForm.ButShowTableClick(Sender: TObject);
 begin
   RowTableIndex:= PtrUInt(ComboBoxRow.Items.Objects[ComboBoxRow.ItemIndex]);
@@ -129,6 +152,12 @@ begin
 
   FillTable();
   DrawGrid.Invalidate;
+  ButShowTable.Enabled:= False;
+end;
+
+procedure TTimetableForm.ButtonAddFilterClick(Sender: TObject);
+begin
+  Filters.AddFilter(ScrollBoxFilters, @OnChangeOption, 0);
 end;
 
 procedure TTimetableForm.FillDimensionsComboBox;
@@ -213,6 +242,7 @@ end;
 procedure TTimetableForm.FillCell(X, Y: Integer);
 var
   FBSQL: TSQL;
+  Conds: TConditions;
   CondRow, CondCol: TCondition;
   i, iRecord: Integer;
 begin
@@ -222,12 +252,18 @@ begin
   CondRow.Operation:= '=';
   CondCol.Field:= Tables[ColTableIndex].TDBName + '.' + 'ID';
   CondCol.Operation:= '=';
+  Conds:= Filters.ToConditions();
+  SetLength(Conds, Length(Conds) + 2);
+  Conds[High(Conds) - 1]:= CondCol;
+  Conds[High(Conds)]:= CondRow;
 
   SQLQuery.Close;
-  SQLQuery.SQL.Text:= FBSQL.SelectAllFrom(Tag).InnerJoin().Where([CondRow, CondCol]).Query;
+  SQLQuery.SQL.Text:= FBSQL.SelectAllFrom(Tag).InnerJoin().Where(Conds).Query;
   SQLQuery.Prepare;
-  SQLQuery.Params[0].AsInteger:= RowsCaption[Y].ID;
-  SQLQuery.Params[1].AsInteger:= ColumnsCaption[X].ID;
+  for i:= 0 to High(Filters.Filters) do
+      SQLQuery.Params[i].AsString:= Filters.Filters[i].Constant.Text;
+  SQLQuery.Params[High(Conds) - 1].AsInteger:= ColumnsCaption[X].ID;
+  SQLQuery.Params[High(Conds)].AsInteger:= RowsCaption[Y].ID;
   SQLQuery.Open;
 
   SQLQuery.First;
