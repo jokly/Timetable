@@ -1,35 +1,36 @@
 object TimetableForm: TTimetableForm
-  Left = 298
-  Height = 365
-  Top = 41
-  Width = 625
+  Left = 260
+  Height = 427
+  Top = 54
+  Width = 819
   Caption = 'Расписание'
-  ClientHeight = 365
-  ClientWidth = 625
+  ClientHeight = 427
+  ClientWidth = 819
   LCLVersion = '1.6.0.4'
   Visible = True
   object DrawGrid: TDrawGrid
     Left = 0
-    Height = 211
+    Height = 272
     Top = 0
-    Width = 625
+    Width = 819
     Align = alClient
     ColCount = 0
     ExtendedSelect = False
     FixedCols = 0
     FixedRows = 0
+    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goColSizing, goSmoothScroll]
     RowCount = 0
     TabOrder = 0
     OnDrawCell = DrawGridDrawCell
   end
   object Panel: TPanel
     Left = 0
-    Height = 154
-    Top = 211
-    Width = 625
+    Height = 155
+    Top = 272
+    Width = 819
     Align = alBottom
-    ClientHeight = 154
-    ClientWidth = 625
+    ClientHeight = 155
+    ClientWidth = 819
     TabOrder = 1
     object GroupBoxDimensions: TGroupBox
       Left = 5
@@ -80,6 +81,26 @@ object TimetableForm: TTimetableForm
         Caption = 'Применить'
         OnClick = ButShowTableClick
         TabOrder = 2
+      end
+    end
+    object GroupBoxOptions: TGroupBox
+      Left = 176
+      Height = 144
+      Top = 5
+      Width = 143
+      Caption = 'Опции'
+      ClientHeight = 124
+      ClientWidth = 139
+      TabOrder = 1
+      object CheckBoxDisplayFieldName: TCheckBox
+        Left = 8
+        Height = 19
+        Top = 0
+        Width = 81
+        Caption = 'Имя полей'
+        Checked = True
+        State = cbChecked
+        TabOrder = 0
       end
     end
   end

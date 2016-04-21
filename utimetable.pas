@@ -23,9 +23,11 @@ type
 
   TTimetableForm = class(TForm)
     ButShowTable: TButton;
+    CheckBoxDisplayFieldName: TCheckBox;
     ComboBoxCol: TComboBox;
     ComboBoxRow: TComboBox;
     DrawGrid: TDrawGrid;
+    GroupBoxOptions: TGroupBox;
     GroupBoxDimensions: TGroupBox;
     LabelHor: TLabel;
     LabelVer: TLabel;
@@ -71,17 +73,20 @@ end;
 procedure TTimetableForm.DrawGridDrawCell(Sender: TObject; aCol, aRow: Integer;
   aRect: TRect; aState: TGridDrawState);
 var
-  i, j, MarginTop: Integer;
+  i, j, MarginTop, HeightCell, WidthCell: Integer;
   FRecord: array of String;
   Str: String;
+  PicCaution: TPicture;
 begin
   if (aRow = 0) and (aCol = 0) then
     Exit;
 
-  DrawGrid.ColWidths[aCol]:= 300;
+  HeightCell:= 300;
+  WidthCell:= 300;
+  DrawGrid.ColWidths[aCol]:= WidthCell;
 
   if aCol = 0 then begin
-    DrawGrid.RowHeights[aRow]:= 300;
+    DrawGrid.RowHeights[aRow]:= HeightCell;
     DrawGrid.Canvas.TextOut(aRect.Left + 5, aRect.Top + 2, RowsCaption[aRow - 1].Value);
   end
   else if aRow = 0 then begin
@@ -89,16 +94,25 @@ begin
     DrawGrid.Canvas.TextOut(aRect.Left + 5, aRect.Top + 2, ColumnsCaption[aCol - 1].Value);
   end
   else begin
-    DrawGrid.RowHeights[aRow]:= 300;
-    MarginTop:= 2;
+    DrawGrid.RowHeights[aRow]:= HeightCell;
+    MarginTop:= 16;
     for i:= 0 to High(FTable[aRow - 1][aCol - 1]) do begin
       FRecord:= FTable[aRow - 1][aCol - 1][i];
       for j:= 0 to High(FRecord) do begin
-        Str:= FieldsName[j] + ': ' + FRecord[j];
+        Str:= '';
+        if CheckBoxDisplayFieldName.Checked then
+          Str:= FieldsName[j] + ': ';
+        Str += FRecord[j];
         DrawGrid.Canvas.TextOut(aRect.Left + 5, aRect.Top + MarginTop, Str);
         MarginTop+= 2 + 16;
       end;
       MarginTop+= 8;
+    end;
+
+    if MarginTop > HeightCell then begin
+      PicCaution:= TPicture.Create;
+      PicCaution.LoadFromFile('img/caution.bmp');
+      DrawGrid.Canvas.Draw(aRect.Left, aRect.Top, PicCaution.Graphic);
     end;
   end;
 end;
@@ -114,6 +128,7 @@ begin
     ColumnsCaption) + 1;
 
   FillTable();
+  DrawGrid.Invalidate;
 end;
 
 procedure TTimetableForm.FillDimensionsComboBox;
