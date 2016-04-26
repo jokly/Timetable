@@ -1,32 +1,35 @@
 object TimetableForm: TTimetableForm
-  Left = 482
-  Height = 466
-  Top = 46
+  Left = 291
+  Height = 475
+  Top = 78
   Width = 819
   Caption = 'Расписание'
-  ClientHeight = 466
+  ClientHeight = 475
   ClientWidth = 819
   LCLVersion = '1.6.0.4'
   Visible = True
   object DrawGrid: TDrawGrid
     Left = 0
-    Height = 304
+    Height = 313
     Top = 0
     Width = 819
     Align = alClient
-    ColCount = 0
+    ColCount = 1
+    DefaultRowHeight = 200
     ExtendedSelect = False
-    FixedCols = 0
-    FixedRows = 0
-    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goColSizing, goSmoothScroll]
-    RowCount = 0
+    MouseWheelOption = mwGrid
+    Options = [goVertLine, goHorzLine, goRangeSelect, goRowSizing, goColSizing]
+    RowCount = 1
     TabOrder = 0
+    TitleStyle = tsStandard
+    OnDblClick = DrawGridDblClick
     OnDrawCell = DrawGridDrawCell
+    OnSelectCell = DrawGridSelectCell
   end
   object Panel: TPanel
     Left = 0
     Height = 162
-    Top = 304
+    Top = 313
     Width = 819
     Align = alBottom
     ClientHeight = 162
@@ -67,6 +70,7 @@ object TimetableForm: TTimetableForm
           Width = 142
           ItemHeight = 15
           OnChange = OnChangeOption
+          Style = csDropDownList
           TabOrder = 0
         end
         object LabelHor: TLabel
@@ -84,6 +88,7 @@ object TimetableForm: TTimetableForm
           Width = 142
           ItemHeight = 15
           OnChange = OnChangeOption
+          Style = csDropDownList
           TabOrder = 1
         end
         object LabelVer: TLabel
@@ -124,14 +129,36 @@ object TimetableForm: TTimetableForm
           State = cbChecked
           TabOrder = 0
         end
+        object CheckBoxDisplayEmptyCol: TCheckBox
+          Left = 8
+          Height = 19
+          Top = 24
+          Width = 111
+          Caption = 'Пустые колонки'
+          Checked = True
+          OnChange = OnChangeOption
+          State = cbChecked
+          TabOrder = 1
+        end
+        object CheckBoxDisplayEmptyRow: TCheckBox
+          Left = 8
+          Height = 19
+          Top = 48
+          Width = 102
+          Caption = 'Пустые строки'
+          Checked = True
+          OnChange = OnChangeOption
+          State = cbChecked
+          TabOrder = 2
+        end
       end
       object GroupBoxFilters: TGroupBox
         Left = 320
-        Height = 99
+        Height = 59
         Top = 5
         Width = 114
         Caption = 'Фильтры'
-        ClientHeight = 79
+        ClientHeight = 39
         ClientWidth = 110
         TabOrder = 2
         object ButtonAddFilter: TButton
@@ -153,6 +180,6 @@ object TimetableForm: TTimetableForm
     Options = []
     Params = <>
     left = 24
-    top = 128
+    top = 8
   end
 end

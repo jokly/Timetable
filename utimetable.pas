@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, Grids,
-  StdCtrls, ExtCtrls, sqldb, UMetadata, USQL, UFilter;
+  StdCtrls, ExtCtrls, sqldb, UMetadata, USQL, UFilter, UDirectoryForm;
 
 type
 
@@ -15,16 +15,28 @@ type
   TCap = record
     Value: String;
     ID: Integer;
+    isEmpty: Boolean;
   end;
 
   TCaps = array of TCap;
+
+  TTableCell = record
+    Row, Col: Integer;
+  end;
+
+  TCellField = record
+    NameField: String;
+    isVisible: Boolean;
+  end;
 
   { TTimetableForm }
 
   TTimetableForm = class(TForm)
     ButShowTable: TButton;
     ButtonAddFilter: TButton;
+    CheckBoxDisplayEmptyRow: TCheckBox;
     CheckBoxDisplayFieldName: TCheckBox;
+    CheckBoxDisplayEmptyCol: TCheckBox;
     ComboBoxCol: TComboBox;
     ComboBoxRow: TComboBox;
     DrawGrid: TDrawGrid;
@@ -40,8 +52,11 @@ type
     procedure ButShowTableClick(Sender: TObject);
     procedure ButtonAddFilterClick(Sender: TObject);
     constructor Create(TableIndex: Integer); overload;
+    procedure DrawGridDblClick(Sender: TObject);
     procedure DrawGridDrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
+    procedure DrawGridSelectCell(Sender: TObject; aCol, aRow: Integer;
+      var CanSelect: Boolean);
     procedure OnChangeOption(Sender: TObject);
   private
     { private declarations }
@@ -51,12 +66,14 @@ type
     RowsCaption: TCaps;
     ColumnsCaption: TCaps;
     Filters: TFilters;
+    SelectedCell: TTableCell;
     procedure FillDimensionsComboBox();
     function FillCaptions(TableIndex: Integer; var AFillArray: TCaps): Integer;
     procedure FillTable();
     procedure GetNameFields();
     procedure FillCell(X, Y: Integer);
-    procedure SetWidthCell(AString: String; aCol: Integer);
+    procedure SetSizeCells();
+    procedure SetWidthCol(AString: String; aCol: Integer);
   public
     { public declarations }
   end;
@@ -66,6 +83,9 @@ var
 
 implementation
 
+const
+  IconSize = 16;
+
 {$R *.lfm}
 
 { TTimetableForm }
@@ -74,36 +94,53 @@ constructor TTimetableForm.Create(TableIndex: Integer);
 begin
   inherited Create(Application);
   Tag:= TableIndex;
-  Filters:= TFilters.Create(Tag, ButShowTable);
+  Filters:= TFilters.Create(Tag);
   FillDimensionsComboBox();
+end;
+
+procedure TTimetableForm.DrawGridDblClick(Sender: TObject);
+var
+  i: Integer;
+  SysConditions: array of TSystemCondition;
+begin
+  SetLength(SysConditions, 2 + Length(Filters.Filters));
+  SysConditions[0].Condition.Field:= Tables[ColTableIndex].TDBName + '.ID';
+  SysConditions[0].Condition.Operation:= '=';
+  SysConditions[0].Value:= IntToStr(ColumnsCaption[SelectedCell.Col - 1].ID);
+
+  SysConditions[1].Condition.Field:= Tables[RowTableIndex].TDBName + '.ID';
+  SysConditions[1].Condition.Operation:= '=';
+  SysConditions[1].Value:= IntToStr(RowsCaption[SelectedCell.Row - 1].ID);
+
+  for i:= 0 to High(Filters.Filters) do begin
+    SysConditions[i + 2].Condition.Field:= Filters.FFields[Filters.Filters[i].Fields.ItemIndex].DBName;
+    SysConditions[i + 2].Condition.Operation:= Filters.Filters[i].Operations.Text;
+    SysConditions[i + 2].Value:= Filters.Filters[i].Constant.Text;
+  end;
+
+  TDirectoryForm.Create(Tag, SysConditions);
 end;
 
 procedure TTimetableForm.DrawGridDrawCell(Sender: TObject; aCol, aRow: Integer;
   aRect: TRect; aState: TGridDrawState);
 var
-  i, j, MarginTop, HeightCell, WidthCell: Integer;
+  i, j, MarginTop, MarginRight: Integer;
   FRecord: array of String;
   Str: String;
-  PicCaution: TPicture;
+  Picture: TPicture;
 begin
   if (aRow = 0) and (aCol = 0) then
     Exit;
 
-  HeightCell:= 200;
-
+  DrawGrid.Canvas.FillRect(aRect);
   if aCol = 0 then begin
-    DrawGrid.RowHeights[aRow]:= HeightCell;
-    SetWidthCell(RowsCaption[aRow - 1].Value, aCol);
     DrawGrid.Canvas.TextOut(aRect.Left + 5, aRect.Top + 2, RowsCaption[aRow - 1].Value);
   end
   else if aRow = 0 then begin
-    DrawGrid.RowHeights[aRow]:= 50;
-    SetWidthCell(ColumnsCaption[aCol - 1].Value, aCol);
     DrawGrid.Canvas.TextOut(aRect.Left + 5, aRect.Top + 2, ColumnsCaption[aCol - 1].Value);
   end
   else begin
-    DrawGrid.RowHeights[aRow]:= HeightCell;
-    MarginTop:= 16;
+    MarginTop:= 8;
     for i:= 0 to High(FTable[aRow - 1][aCol - 1]) do begin
       FRecord:= FTable[aRow - 1][aCol - 1][i];
       for j:= 0 to High(FRecord) do begin
@@ -111,27 +148,83 @@ begin
         if CheckBoxDisplayFieldName.Checked then
           Str:= FieldsName[j] + ': ';
         Str += FRecord[j];
-        SetWidthCell(Str, aCol);
         DrawGrid.Canvas.TextOut(aRect.Left + 5, aRect.Top + MarginTop, Str);
         MarginTop+= 2 + 16;
       end;
       MarginTop+= 8;
     end;
 
-    if MarginTop > HeightCell then begin
-      PicCaution:= TPicture.Create;
-      PicCaution.LoadFromFile('img/caution.bmp');
-      DrawGrid.Canvas.Draw(aRect.Left, aRect.Top, PicCaution.Graphic);
+    MarginTop-= 8;
+    MarginRight:= 3;
+    if DrawGrid.RowHeights[aRow] < MarginTop then begin
+      Picture:= TPicture.Create;
+      Picture.LoadFromFile('img/caution.bmp');
+      DrawGrid.Canvas.Draw(aRect.Right - IconSize - MarginRight, aRect.Bottom - IconSize - 3, Picture.Graphic);
+      MarginRight:= IconSize + 5;
+      Picture.Free;
+    end;
+    Picture:= TPicture.Create;
+    Picture.LoadFromFile('img/table.bmp');
+    DrawGrid.Canvas.Draw(aRect.Right - IconSize - MarginRight, aRect.Bottom - IconSize - 3, Picture.Graphic);
+    Picture.Free;
+  end;
+end;
+
+procedure TTimetableForm.DrawGridSelectCell(Sender: TObject; aCol,
+  aRow: Integer; var CanSelect: Boolean);
+begin
+  SelectedCell.Col:= aCol;
+  SelectedCell.Row:= aRow;
+end;
+
+procedure TTimetableForm.SetSizeCells;
+var
+  aRow, aCol, i, j: Integer;
+  FRecord: array of String;
+  Str: String;
+begin
+  for aRow:= 1 to DrawGrid.RowCount - 1 do begin
+    if (CheckBoxDisplayEmptyRow.Checked = False) and (RowsCaption[aRow - 1].isEmpty = True) then begin
+      DrawGrid.RowHeights[aRow]:= 0;
+      Continue;
+    end;
+    DrawGrid.RowHeights[aRow]:= DrawGrid.DefaultRowHeight;
+    SetWidthCol(RowsCaption[aRow - 1].Value, 0);
+  end;
+
+  DrawGrid.RowHeights[0]:= 50;
+  for aCol:= 1 to DrawGrid.ColCount - 1 do begin
+    if (CheckBoxDisplayEmptyCol.Checked = False) and (ColumnsCaption[aCol - 1].isEmpty = True) then begin
+      DrawGrid.ColWidths[aCol]:= 0;
+      Continue;
+    end;
+    SetWidthCol(ColumnsCaption[aCol - 1].Value, aCol);
+  end;
+
+  for aRow:= 1 to DrawGrid.RowCount - 1 do begin
+    for aCol:= 1 to DrawGrid.ColCount - 1 do begin
+      for i:= 0 to High(FTable[aRow - 1][aCol - 1]) do begin
+        FRecord:= FTable[aRow - 1][aCol - 1][i];
+        for j:= 0 to High(FRecord) do begin
+          Str:= '';
+          if CheckBoxDisplayFieldName.Checked then
+            Str:= FieldsName[j] + ': ';
+          Str += FRecord[j];
+          if aCol = 4 then
+            Str:= Str;
+          SetWidthCol(Str, aCol);
+        end;
+      end;
     end;
   end;
 end;
 
-procedure TTimetableForm.SetWidthCell(AString: String; aCol: Integer);
+procedure TTimetableForm.SetWidthCol(AString: String; aCol: Integer);
 var
   WidthCell: Integer;
 begin
   WidthCell:= DrawGrid.Canvas.TextWidth(AString);
-  if WidthCell > DrawGrid.ColWidths[aCol] then
+  if (WidthCell > DrawGrid.ColWidths[aCol]) or (ColumnsCaption[aCol - 1].isEmpty) then
     DrawGrid.ColWidths[aCol]:= WidthCell + 10;
 end;
 
@@ -145,12 +238,11 @@ begin
   RowTableIndex:= PtrUInt(ComboBoxRow.Items.Objects[ComboBoxRow.ItemIndex]);
   ColTableIndex:= PtrUInt(ComboBoxCol.Items.Objects[ComboBoxCol.ItemIndex]);
 
-  DrawGrid.RowCount:= FillCaptions(RowTableIndex,
-    RowsCaption) + 1;
-  DrawGrid.ColCount:= FillCaptions(ColTableIndex,
-    ColumnsCaption) + 1;
+  DrawGrid.RowCount:= FillCaptions(RowTableIndex, RowsCaption) + 1;
+  DrawGrid.ColCount:= FillCaptions(ColTableIndex, ColumnsCaption) + 1;
 
   FillTable();
+  SetSizeCells();
   DrawGrid.Invalidate;
   ButShowTable.Enabled:= False;
 end;
@@ -197,6 +289,7 @@ begin
     SetLength(AFillArray, Length(AFillArray) + 1);
     AFillArray[High(AFillArray)].Value:= Cap;
     AFillArray[High(AFillArray)].ID:= SQLQuery.Fields[0].AsInteger;
+    AFillArray[High(AFillArray)].isEmpty:= True;
     SQLQuery.Next;
   end;
 
@@ -274,6 +367,11 @@ begin
     for i:= 1 to SQLQuery.FieldCount - 1 do
       FTable[Y][X][iRecord][i - 1]:= SQLQuery.Fields[i].AsString;
     SQLQuery.Next;
+  end;
+
+  if  Length(FTable[Y][X]) > 0 then begin
+    ColumnsCaption[X].isEmpty:= False;
+    RowsCaption[Y].isEmpty:= False;
   end;
 end;
 

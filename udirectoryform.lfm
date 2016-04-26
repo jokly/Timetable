@@ -1,7 +1,7 @@
 object DirectoryForm: TDirectoryForm
-  Left = 663
+  Left = 249
   Height = 517
-  Top = 44
+  Top = 85
   Width = 864
   ClientHeight = 517
   ClientWidth = 864

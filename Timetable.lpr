@@ -18,9 +18,6 @@ begin
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
   Application.CreateForm(TDBConnection, DBConnection);
-  //Application.CreateForm(TDirectoryForm, DirectoryForm);
-  //Application.CreateForm(TEditCard, EditCard);
-  //Application.CreateForm(TTimetableForm, TimetableForm);
   Application.Run;
 end.
 

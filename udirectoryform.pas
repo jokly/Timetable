@@ -30,8 +30,9 @@ type
     RightScrollBox: TScrollBox;
     LeftScrollBox: TScrollBox;
     SQLQuery: TSQLQuery;
-    procedure CheckListSortItemClick(Sender: TObject; Index: Integer);
     constructor Create(ATableId: Integer); overload;
+    constructor Create(ATableId: Integer; ASysConditions: array of TSystemCondition);
+    procedure CheckListSortItemClick(Sender: TObject; Index: Integer);
     procedure DBGridCellClick(Column: TColumn);
     procedure DBGridDblClick(Sender: TObject);
     procedure FAddButtonClick(Sender: TObject);
@@ -76,7 +77,7 @@ begin
   SelectedRow:= 1;
   TNotification.Subscribe(@FApplyButtonClick);
 
-  Filters:= TFilters.Create(Tag, FApplyButton);
+  Filters:= TFilters.Create(Tag);
 
   FBSQL:= TSQL.Create;
   FApplyButton.Click;
@@ -86,6 +87,13 @@ begin
   for i:= 1 to High(FBSQL.Columns) do
     with FBSQL.Columns[i] do
       CheckListSort.Items.Add(Tables[TableID].Fields[FieldID].FAppName);
+end;
+
+constructor TDirectoryForm.Create(ATableId: Integer; ASysConditions: array of TSystemCondition);
+begin
+  Create(ATableId);
+  Filters.SetSystemConditions(ASysConditions);
+  FApplyButton.Click;
 end;
 
 procedure TDirectoryForm.DBGridCellClick(Column: TColumn);
@@ -109,12 +117,11 @@ var
   i: Integer;
   ToOrder: array of String;
 begin
-
   for i:= 0 to CheckListSort.Items.Count - 1 do begin
     if CheckListSort.Checked[i] then begin
       SetLength(ToOrder, Length(ToOrder) + 1);
       with FBSQL.Columns[i + 1] do
-          ToOrder[High(ToOrder)]:= Tables[TableID].TDBName + '.' + Tables[TableID].Fields[FieldID].FDBName;
+        ToOrder[High(ToOrder)]:= Tables[TableID].TDBName + '.' + Tables[TableID].Fields[FieldID].FDBName;
     end;
   end;
 
@@ -122,7 +129,9 @@ begin
   SQLQuery.SQL.Text:= FBSQL.SelectAllFrom(Tag).InnerJoin().Where(Filters.ToConditions()).OrderBy(ToOrder).Query;
   SQLQuery.Prepare;
   for i:= 0 to High(Filters.Filters) do
-      SQLQuery.Params[i].AsString:= Filters.Filters[i].Constant.Text;
+    SQLQuery.Params[i].AsString:= Filters.Filters[i].Constant.Text;
+  for i:= 0 to High(Filters.SystemConditions) do
+    SQLQuery.Params[i + Length(Filters.Filters)].AsString:= Filters.SystemConditions[i].Value;
   SQLQuery.Open;
 
   UpdateGrid();
