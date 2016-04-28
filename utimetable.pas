@@ -11,7 +11,12 @@ uses
 
 type
 
-  TCell = array of array of String;
+  TRecord = record
+    Rec: array of String;
+    ID: Integer;
+  end;
+
+  TCell = array of TRecord;
 
   TCap = record
     Value: String;
@@ -32,6 +37,7 @@ type
 
   TCellButtons = record
     Table, Add: TRect;
+    Edits: array of TRect;
   end;
 
   { TTimetableForm }
@@ -74,7 +80,7 @@ type
     ColumnsCaption: TCaps;
     Filters: TFilters;
     SelectedCell: TTableCell;
-    CautionPic, TablePic, AddPic: TPicture;
+    CautionPic, TablePic, AddPic, EditPic: TPicture;
     CellsButtons: array of array of TCellButtons;
     procedure FillDimensionsComboBox();
     function FillCaptions(TableIndex: Integer; var AFillArray: TCaps): Integer;
@@ -112,6 +118,8 @@ begin
   TablePic.LoadFromFile('img/table.bmp');
   AddPic:= TPicture.Create;
   AddPic.LoadFromFile('img/add.bmp');
+  EditPic:= TPicture.Create;
+  EditPic.LoadFromFile('img/edit.bmp');
 
   FillDimensionsComboBox();
 end;
@@ -163,7 +171,7 @@ begin
     TextWidth:= 0;
     DrawGrid.Canvas.Pen.Style:= psDash;
     for i:= 0 to High(FTable[aRow - 1][aCol - 1]) do begin
-      FRecord:= FTable[aRow - 1][aCol - 1][i];
+      FRecord:= FTable[aRow - 1][aCol - 1][i].Rec;
       for j:= 0 to High(FRecord) do begin
         Str:= '';
         if CheckBoxDisplayFieldName.Checked then
@@ -174,6 +182,14 @@ begin
         MarginTop+= 16;
       end;
       MarginTop+= 8;
+      //Edit icon
+      CellsButtons[aRow - 1][aCol - 1].Edits[i]:= Rect(aRect.Right - IconSize -  Margin,
+        aRect.Top + MarginTop - Margin - IconSize, aRect.Right - Margin,
+        aRect.Top + MarginTop - Margin);
+      DrawGrid.Canvas.Draw(aRect.Right - IconSize -  Margin,
+       aRect.Top + MarginTop - Margin - IconSize, EditPic.Graphic);
+
+      //Line
       DrawGrid.Canvas.Line(aRect.Left, aRect.Top + MarginTop,
         aRect.Left + DrawGrid.ColWidths[aCol], aRect.Top + MarginTop);
       MarginTop+= 8;
@@ -202,6 +218,8 @@ end;
 procedure TTimetableForm.DrawGridMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
+  i: Integer;
+  Edits: array of TRect;
   DefaultValues: TDefaultValues;
 begin
   if PtInRect(CellsButtons[SelectedCell.Row - 1][SelectedCell.Col - 1].Table, Point(X, Y)) then
@@ -213,6 +231,15 @@ begin
     DefaultValues[1].TableID:= ColTableIndex;
     DefaultValues[1].FieldID:= ColumnsCaption[SelectedCell.Col - 1].ID;
     TEditCard.Create(Tag, DefaultValues);
+  end
+  else begin
+    Edits:= CellsButtons[SelectedCell.Row - 1][SelectedCell.Col - 1].Edits;
+    for i:= 0 to High(Edits) do begin
+        if PtInRect(Edits[i], Point(X, Y)) then begin
+          TEditCard.Create(Tag, Nil, FTable[SelectedCell.Row - 1][SelectedCell.Col - 1][i].ID);
+          Exit;
+        end;
+    end;
   end;
 end;
 
@@ -250,7 +277,7 @@ begin
   for aRow:= 1 to DrawGrid.RowCount - 1 do begin
     for aCol:= 1 to DrawGrid.ColCount - 1 do begin
       for i:= 0 to High(FTable[aRow - 1][aCol - 1]) do begin
-        FRecord:= FTable[aRow - 1][aCol - 1][i];
+        FRecord:= FTable[aRow - 1][aCol - 1][i].Rec;
         for j:= 0 to High(FRecord) do begin
           Str:= '';
           if CheckBoxDisplayFieldName.Checked then
@@ -410,9 +437,10 @@ begin
   while (not SQLQuery.EOF) do begin
     SetLength(FTable[Y][X], Length(FTable[Y][X]) + 1);
     iRecord:= High(FTable[Y][X]);
-    SetLength(FTable[Y][X][iRecord], SQLQuery.FieldCount - 1);
+    SetLength(FTable[Y][X][iRecord].Rec, SQLQuery.FieldCount - 1);
+    FTable[Y][X][iRecord].ID:= SQLQuery.Fields[0].AsInteger;
     for i:= 1 to SQLQuery.FieldCount - 1 do
-      FTable[Y][X][iRecord][i - 1]:= SQLQuery.Fields[i].AsString;
+      FTable[Y][X][iRecord].Rec[i - 1]:= SQLQuery.Fields[i].AsString;
     SQLQuery.Next;
   end;
 
@@ -420,6 +448,8 @@ begin
     ColumnsCaption[X].isEmpty:= False;
     RowsCaption[Y].isEmpty:= False;
   end;
+
+  SetLength(CellsButtons[Y][X].Edits, Length(FTable[Y][X]));
 end;
 
 end.
