@@ -17,6 +17,12 @@ type
     TableIndex, CountFields: Integer;
   end;
 
+  TDefaultValue = record
+    TableID, FieldID: Integer;
+  end;
+
+  TDefaultValues = array of TDefaultValue;
+
   { TEditCard }
 
   TEditCard = class(TForm)
@@ -29,6 +35,7 @@ type
     TableIndex, FieldID, CurrentY: Integer;
     FBSQL: TSQL;
     Editors: array of TEditor;
+    DefaultValues: TDefaultValues;
     procedure GetRecord();
     function AddLable(ACaption: String): TLabel;
     procedure AddEdit(ALabelText: String; AWidth: Integer; ACaption: String = '');
@@ -38,6 +45,7 @@ type
   public
     SetCursorPosition: TNotifyEvent;
     constructor Create(ATableIndex: Integer; ASetCursorPos: TNotifyEvent; AFieldID: Integer = -1); overload;
+    constructor Create(ATableIndex: Integer; ADefaultValues: TDefaultValues); overload;
   end;
 
 var
@@ -64,8 +72,8 @@ begin
   for i:= 0 to High(Editors) do
     if Editors[i].Control is TComboBox then
         TNotification.DeleteFromProtect(Editors[i].TableIndex);
-
-  SetCursorPosition(Sender);
+  if SetCursorPosition <> Nil then
+    SetCursorPosition(Sender);
 end;
 
 procedure TEditCard.GetRecord();
@@ -136,6 +144,19 @@ begin
     end;
     Parent:= ScrollBox;
   end;
+end;
+
+constructor TEditCard.Create(ATableIndex: Integer; ADefaultValues: TDefaultValues);
+var
+  i: Integer;
+  Event: TNotifyEvent;
+begin
+  SetLength(DefaultValues, Length(ADefaultValues));
+  for i:= 0 to High(DefaultValues) do
+    DefaultValues[i]:= ADefaultValues[i];
+
+  Event:= Nil;
+  Create(ATableIndex, Event);
 end;
 
 procedure TEditCard.AddButClick(Sender: TObject);
@@ -227,7 +248,7 @@ end;
 
 procedure TEditCard.AddComboBox(ATableIndex: Integer; ACaption: String);
 var
-  i, k: Integer;
+  i, k, j: Integer;
   FEditor: TEditor;
   Field: TField;
   CurText, LabelText: String;
@@ -268,11 +289,14 @@ begin
           FEditor.IDs[High(FEditor.IDs)]:= DataSource.DataSet.FieldByName('ID').AsInteger;
           Items.Add(CurText);
         end
-        else begin
+        else
           Items[k]:= Items[k] + ' ' + CurText;
-        end;
         if Items[k] = ACaption then
            ItemIndex:= k;
+        for j:= 0 to High(DefaultValues) do
+          if (ATableIndex = DefaultValues[j].TableID) and (FEditor.IDs[k] = DefaultValues[j].FieldID) then
+               ItemIndex:= k;
+
         SQLQuery.Next;
         Inc(k);
       end;

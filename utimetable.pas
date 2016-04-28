@@ -6,7 +6,8 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, Grids,
-  StdCtrls, ExtCtrls, sqldb, UMetadata, USQL, UFilter, UDirectoryForm;
+  StdCtrls, ExtCtrls, sqldb, math, Types, UMetadata, USQL, UFilter,
+  UDirectoryForm, UEditCard, UNotification;
 
 type
 
@@ -27,6 +28,10 @@ type
   TCellField = record
     NameField: String;
     isVisible: Boolean;
+  end;
+
+  TCellButtons = record
+    Table, Add: TRect;
   end;
 
   { TTimetableForm }
@@ -55,6 +60,8 @@ type
     procedure DrawGridDblClick(Sender: TObject);
     procedure DrawGridDrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
+    procedure DrawGridMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
     procedure DrawGridSelectCell(Sender: TObject; aCol, aRow: Integer;
       var CanSelect: Boolean);
     procedure OnChangeOption(Sender: TObject);
@@ -67,6 +74,8 @@ type
     ColumnsCaption: TCaps;
     Filters: TFilters;
     SelectedCell: TTableCell;
+    CautionPic, TablePic, AddPic: TPicture;
+    CellsButtons: array of array of TCellButtons;
     procedure FillDimensionsComboBox();
     function FillCaptions(TableIndex: Integer; var AFillArray: TCaps): Integer;
     procedure FillTable();
@@ -93,8 +102,17 @@ const
 constructor TTimetableForm.Create(TableIndex: Integer);
 begin
   inherited Create(Application);
+  TNotification.Subscribe(@ButShowTableClick);
   Tag:= TableIndex;
   Filters:= TFilters.Create(Tag);
+
+  CautionPic:= TPicture.Create;
+  CautionPic.LoadFromFile('img/caution.bmp');
+  TablePic:= TPicture.Create;
+  TablePic.LoadFromFile('img/table.bmp');
+  AddPic:= TPicture.Create;
+  AddPic.LoadFromFile('img/add.bmp');
+
   FillDimensionsComboBox();
 end;
 
@@ -123,11 +141,12 @@ end;
 
 procedure TTimetableForm.DrawGridDrawCell(Sender: TObject; aCol, aRow: Integer;
   aRect: TRect; aState: TGridDrawState);
+const
+  Margin = 3;
 var
-  i, j, MarginTop, MarginRight: Integer;
+  i, j, MarginTop, TextWidth: Integer;
   FRecord: array of String;
   Str: String;
-  Picture: TPicture;
 begin
   if (aRow = 0) and (aCol = 0) then
     Exit;
@@ -141,6 +160,8 @@ begin
   end
   else begin
     MarginTop:= 8;
+    TextWidth:= 0;
+    DrawGrid.Canvas.Pen.Style:= psDash;
     for i:= 0 to High(FTable[aRow - 1][aCol - 1]) do begin
       FRecord:= FTable[aRow - 1][aCol - 1][i];
       for j:= 0 to High(FRecord) do begin
@@ -149,24 +170,49 @@ begin
           Str:= FieldsName[j] + ': ';
         Str += FRecord[j];
         DrawGrid.Canvas.TextOut(aRect.Left + 5, aRect.Top + MarginTop, Str);
-        MarginTop+= 2 + 16;
+        TextWidth:= Max(TextWidth, DrawGrid.Canvas.TextWidth(Str));
+        MarginTop+= 16;
       end;
+      MarginTop+= 8;
+      DrawGrid.Canvas.Line(aRect.Left, aRect.Top + MarginTop,
+        aRect.Left + DrawGrid.ColWidths[aCol], aRect.Top + MarginTop);
       MarginTop+= 8;
     end;
 
+    TextWidth+= 5;
     MarginTop-= 8;
-    MarginRight:= 3;
-    if DrawGrid.RowHeights[aRow] < MarginTop then begin
-      Picture:= TPicture.Create;
-      Picture.LoadFromFile('img/caution.bmp');
-      DrawGrid.Canvas.Draw(aRect.Right - IconSize - MarginRight, aRect.Bottom - IconSize - 3, Picture.Graphic);
-      MarginRight:= IconSize + 5;
-      Picture.Free;
+    if (DrawGrid.RowHeights[aRow] < MarginTop) or (TextWidth > DrawGrid.ColWidths[aCol]) then begin
+      DrawGrid.Canvas.Draw(aRect.Right - IconSize -  Margin,
+        aRect.Bottom - IconSize - Margin, CautionPic.Graphic);
     end;
-    Picture:= TPicture.Create;
-    Picture.LoadFromFile('img/table.bmp');
-    DrawGrid.Canvas.Draw(aRect.Right - IconSize - MarginRight, aRect.Bottom - IconSize - 3, Picture.Graphic);
-    Picture.Free;
+    //Table icon
+    CellsButtons[aRow - 1][aCol - 1].Table:= Rect(aRect.Right - 2 * (Margin + IconSize),
+      aRect.Bottom - IconSize - Margin, aRect.Right - 2 * Margin - IconSize, aRect.Bottom - Margin);
+    DrawGrid.Canvas.Draw(aRect.Right - 2 * (Margin + IconSize),
+      aRect.Bottom - IconSize - Margin, TablePic.Graphic);
+
+    //Add icon
+    CellsButtons[aRow - 1][aCol - 1].Add:= Rect(aRect.Right - 3 * (Margin + IconSize),
+      aRect.Bottom - IconSize - Margin, aRect.Right - 3 * Margin - IconSize, aRect.Bottom - Margin);
+    DrawGrid.Canvas.Draw(aRect.Right - 3 * (Margin + IconSize),
+      aRect.Bottom - IconSize - Margin, AddPic.Graphic);
+  end;
+end;
+
+procedure TTimetableForm.DrawGridMouseUp(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+var
+  DefaultValues: TDefaultValues;
+begin
+  if PtInRect(CellsButtons[SelectedCell.Row - 1][SelectedCell.Col - 1].Table, Point(X, Y)) then
+    DrawGridDblClick(Sender)
+  else if PtInRect(CellsButtons[SelectedCell.Row - 1][SelectedCell.Col - 1].Add, Point(X, Y)) then begin
+    SetLength(DefaultValues, 2);
+    DefaultValues[0].TableID:= RowTableIndex;
+    DefaultValues[0].FieldID:= RowsCaption[SelectedCell.Row - 1].ID;
+    DefaultValues[1].TableID:= ColTableIndex;
+    DefaultValues[1].FieldID:= ColumnsCaption[SelectedCell.Col - 1].ID;
+    TEditCard.Create(Tag, DefaultValues);
   end;
 end;
 
@@ -210,8 +256,6 @@ begin
           if CheckBoxDisplayFieldName.Checked then
             Str:= FieldsName[j] + ': ';
           Str += FRecord[j];
-          if aCol = 4 then
-            Str:= Str;
           SetWidthCol(Str, aCol);
         end;
       end;
@@ -224,7 +268,8 @@ var
   WidthCell: Integer;
 begin
   WidthCell:= DrawGrid.Canvas.TextWidth(AString);
-  if (WidthCell > DrawGrid.ColWidths[aCol]) or (ColumnsCaption[aCol - 1].isEmpty) then
+  if ((WidthCell > DrawGrid.ColWidths[aCol]) or (ColumnsCaption[aCol - 1].isEmpty)) and
+    (WidthCell > DrawGrid.DefaultColWidth) then
     DrawGrid.ColWidths[aCol]:= WidthCell + 10;
 end;
 
@@ -302,16 +347,18 @@ var
 begin
   GetNameFields();
   SetLength(FTable, 0);
+  SetLength(CellsButtons, 0);
 
   SetLength(FTable, Length(RowsCaption));
-  for i:= 0 to High(FTable) do
-    SetLength(FTable[i], Length(ColumnsCaption));
-
+  SetLength(CellsButtons, Length(RowsCaption));
   for i:= 0 to High(FTable) do begin
-    for j:= 0 to High(FTable[i]) do begin
-      FillCell(j, i);
-    end;
+    SetLength(FTable[i], Length(ColumnsCaption));
+    SetLength(CellsButtons[i], Length(ColumnsCaption));
   end;
+
+  for i:= 0 to High(FTable) do
+    for j:= 0 to High(FTable[i]) do
+      FillCell(j, i);
 end;
 
 procedure TTimetableForm.GetNameFields;
@@ -369,7 +416,7 @@ begin
     SQLQuery.Next;
   end;
 
-  if  Length(FTable[Y][X]) > 0 then begin
+  if Length(FTable[Y][X]) > 0 then begin
     ColumnsCaption[X].isEmpty:= False;
     RowsCaption[Y].isEmpty:= False;
   end;

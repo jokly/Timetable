@@ -18,12 +18,13 @@ object TimetableForm: TTimetableForm
     DefaultRowHeight = 200
     ExtendedSelect = False
     MouseWheelOption = mwGrid
-    Options = [goVertLine, goHorzLine, goRangeSelect, goRowSizing, goColSizing]
+    Options = [goVertLine, goHorzLine, goRangeSelect, goRowSizing, goColSizing, goThumbTracking]
     RowCount = 1
     TabOrder = 0
     TitleStyle = tsStandard
     OnDblClick = DrawGridDblClick
     OnDrawCell = DrawGridDrawCell
+    OnMouseUp = DrawGridMouseUp
     OnSelectCell = DrawGridSelectCell
   end
   object Panel: TPanel
@@ -179,7 +180,7 @@ object TimetableForm: TTimetableForm
     Transaction = DBConnection.SQLTransaction
     Options = []
     Params = <>
-    left = 24
+    left = 88
     top = 8
   end
 end

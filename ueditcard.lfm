@@ -1,19 +1,19 @@
 object EditCard: TEditCard
   Left = 123
-  Height = 471
+  Height = 485
   Top = 53
-  Width = 459
+  Width = 483
   Caption = 'Карточка'
-  ClientHeight = 471
-  ClientWidth = 459
+  ClientHeight = 485
+  ClientWidth = 483
   OnClose = FormClose
   LCLVersion = '1.6.0.4'
   Visible = True
   object ScrollBox: TScrollBox
     Left = 0
-    Height = 471
+    Height = 485
     Top = 0
-    Width = 459
+    Width = 483
     HorzScrollBar.Page = 1
     VertScrollBar.Page = 1
     VertScrollBar.Tracking = True
