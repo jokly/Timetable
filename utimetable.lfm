@@ -23,6 +23,8 @@ object TimetableForm: TTimetableForm
     TabOrder = 0
     TitleStyle = tsStandard
     OnDblClick = DrawGridDblClick
+    OnDragDrop = DrawGridDragDrop
+    OnDragOver = DrawGridDragOver
     OnDrawCell = DrawGridDrawCell
     OnMouseDown = DrawGridMouseDown
     OnMouseUp = DrawGridMouseUp

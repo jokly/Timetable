@@ -41,11 +41,12 @@ type
     procedure AddEdit(ALabelText: String; AWidth: Integer; ACaption: String = '');
     procedure AddComboBox(ATableIndex: Integer; ACaption: String);
     procedure AddButClick(Sender: TObject);
-    procedure EditButClick(Sender: TObject);
   public
     SetCursorPosition: TNotifyEvent;
     constructor Create(ATableIndex: Integer; ASetCursorPos: TNotifyEvent; AFieldID: Integer = -1); overload;
     constructor Create(ATableIndex: Integer; ADefaultValues: TDefaultValues); overload;
+    constructor Create(ATableIndex, AFieldID: Integer; ADefaultValues: TDefaultValues); overload;
+    procedure EditButClick(Sender: TObject);
   end;
 
 var
@@ -146,7 +147,7 @@ begin
   end;
 end;
 
-constructor TEditCard.Create(ATableIndex: Integer; ADefaultValues: TDefaultValues);
+constructor TEditCard.Create(ATableIndex: Integer;  ADefaultValues: TDefaultValues);
 var
   i: Integer;
   Event: TNotifyEvent;
@@ -157,6 +158,19 @@ begin
 
   Event:= Nil;
   Create(ATableIndex, Event);
+end;
+
+constructor TEditCard.Create(ATableIndex, AFieldID: Integer; ADefaultValues: TDefaultValues);
+var
+  i: Integer;
+  Event: TNotifyEvent;
+begin
+  SetLength(DefaultValues, Length(ADefaultValues));
+  for i:= 0 to High(DefaultValues) do
+    DefaultValues[i]:= ADefaultValues[i];
+
+  Event:= Nil;
+  Create(ATableIndex, Event, AFieldID);
 end;
 
 procedure TEditCard.AddButClick(Sender: TObject);
@@ -291,7 +305,7 @@ begin
         end
         else
           Items[k]:= Items[k] + ' ' + CurText;
-        if Items[k] = ACaption then
+        if (Items[k] = ACaption) and (Length(DefaultValues) = 0) then
            ItemIndex:= k;
         for j:= 0 to High(DefaultValues) do
           if (ATableIndex = DefaultValues[j].TableID) and (FEditor.IDs[k] = DefaultValues[j].FieldID) then

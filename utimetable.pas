@@ -72,6 +72,9 @@ type
     procedure ButtonAddFilterClick(Sender: TObject);
     constructor Create(TableIndex: Integer); overload;
     procedure DrawGridDblClick(Sender: TObject);
+    procedure DrawGridDragDrop(Sender, Source: TObject; X, Y: Integer);
+    procedure DrawGridDragOver(Sender, Source: TObject; X, Y: Integer;
+      State: TDragState; var Accept: Boolean);
     procedure DrawGridDrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
     procedure DrawGridMouseDown(Sender: TObject; Button: TMouseButton;
@@ -85,7 +88,7 @@ type
     { private declarations }
     FTable: array of array of TCell;
     FieldsName: array of String;
-    ColTableIndex, RowTableIndex: Integer;
+    ColTableIndex, RowTableIndex, RecordHeight: Integer;
     RowsCaption, ColumnsCaption: TCaps;
     Filters: TFilters;
     SelectedCell: TTableCell;
@@ -211,6 +214,8 @@ begin
       //Line
       DrawGrid.Canvas.Line(aRect.Left, aRect.Top + MarginTop,
         aRect.Left + DrawGrid.ColWidths[aCol], aRect.Top + MarginTop);
+      if i = 0 then
+        RecordHeight:= MarginTop;
       MarginTop+= 8;
     end;
 
@@ -227,6 +232,8 @@ begin
       aRect.Bottom - IconSize - Margin, TablePic.Graphic);
 
     //Add icon
+    if (RowTableIndex = ColTableIndex) and (ColumnsCaption[aCol - 1].ID <> RowsCaption[aRow - 1].ID) then
+      Exit;
     CellsButtons[aRow - 1][aCol - 1].Add:= Rect(aRect.Right - 3 * (Margin + IconSize),
       aRect.Bottom - IconSize - Margin, aRect.Right - 3 * Margin - IconSize, aRect.Bottom - Margin);
     DrawGrid.Canvas.Draw(aRect.Right - 3 * (Margin + IconSize),
@@ -240,6 +247,7 @@ var
   i: Integer;
   CellButtons: TCellButtons;
   Rects: array of TRect;
+  FRect: TRect;
 begin
   CellClick.ButType:= TButType.None;
   CellButtons:= CellsButtons[SelectedCell.Row - 1][SelectedCell.Col - 1];
@@ -264,6 +272,45 @@ begin
         Exit;
       end;
   end;
+
+  //Drag mode start
+  if Button = mbRight then begin;
+    for i:= 0 to High(FTable[SelectedCell.Row - 1][SelectedCell.Col - 1]) do begin
+      FRect:= DrawGrid.CellRect(SelectedCell.Col, SelectedCell.Row);
+      FRect:= Rect(FRect.Left, FRect.Top + i * RecordHeight,
+        FRect.Left + DrawGrid.ColWidths[SelectedCell.Col],FRect.Top + (i + 1) * RecordHeight);
+      if PtInRect(FRect, Point(X, Y)) then begin
+        DrawGrid.Canvas.Brush.Style:= bsClear;
+        DrawGrid.Canvas.Pen.Color:= clBlue;
+        DrawGrid.Canvas.Rectangle(FRect);
+        CellClick.RecordID:= FTable[SelectedCell.Row - 1][SelectedCell.Col - 1][i].ID;
+        DrawGrid.BeginDrag(True);
+        Exit;
+      end;
+    end;
+  end;
+end;
+
+procedure TTimetableForm.DrawGridDragOver(Sender, Source: TObject; X,
+  Y: Integer; State: TDragState; var Accept: Boolean);
+begin
+
+end;
+
+procedure TTimetableForm.DrawGridDragDrop(Sender, Source: TObject; X, Y: Integer);
+var
+  aCol, aRow:Integer;
+  DefaultValues: TDefaultValues;
+  EditCard: TEditCard;
+begin
+  DrawGrid.MouseToCell(X, Y, aCol, aRow);
+  SetLength(DefaultValues, 2);
+  DefaultValues[0].TableID:= RowTableIndex;
+  DefaultValues[0].FieldID:= RowsCaption[aRow - 1].ID;
+  DefaultValues[1].TableID:= ColTableIndex;
+  DefaultValues[1].FieldID:= ColumnsCaption[aCol - 1].ID;
+  EditCard:= TEditCard.Create(Tag, CellClick.RecordID, DefaultValues);
+  EditCard.EditButClick(Sender);
 end;
 
 procedure TTimetableForm.DrawGridMouseUp(Sender: TObject; Button: TMouseButton;
@@ -302,7 +349,7 @@ begin
       Exit;
     end;
     ButtonSel:= messagedlg('Вы точно хотите удалить запись?', mtCustom, [mbYes,mbNo], 0);
-    if ButtonSel = 6then begin
+    if ButtonSel = 6 then begin
       SQLQuery.Close;
       Con.Field:= 'ID';
       Con.Operation:= '=';
