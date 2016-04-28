@@ -152,7 +152,6 @@ procedure TDirectoryForm.RChangeButtonClick(Sender: TObject);
 var
   FieldID: Integer;
   EditCard: TEditCard;
-
 begin
   SelectedRow:= DBGrid.DataSource.DataSet.RecNo;
   FieldID:= DBGrid.DataSource.DataSet.Fields.Fields[0].AsInteger;

@@ -11,6 +11,13 @@ uses
 
 type
 
+  TButType = (OpenDirectory, AddRecord, EditRecord, DeleteRecord, None);
+
+  TManageButton = record
+    ButType: TButType;
+    RecordID: Integer;
+  end;
+
   TRecord = record
     Rec: array of String;
     ID: Integer;
@@ -67,6 +74,8 @@ type
     procedure DrawGridDblClick(Sender: TObject);
     procedure DrawGridDrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
+    procedure DrawGridMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
     procedure DrawGridMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure DrawGridSelectCell(Sender: TObject; aCol, aRow: Integer;
@@ -77,10 +86,10 @@ type
     FTable: array of array of TCell;
     FieldsName: array of String;
     ColTableIndex, RowTableIndex: Integer;
-    RowsCaption: TCaps;
-    ColumnsCaption: TCaps;
+    RowsCaption, ColumnsCaption: TCaps;
     Filters: TFilters;
     SelectedCell: TTableCell;
+    CellClick: TManageButton;
     CautionPic, TablePic, AddPic, EditPic, DeletePic: TPicture;
     CellsButtons: array of array of TCellButtons;
     procedure FillDimensionsComboBox();
@@ -225,18 +234,49 @@ begin
   end;
 end;
 
+procedure TTimetableForm.DrawGridMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  i: Integer;
+  CellButtons: TCellButtons;
+  Rects: array of TRect;
+begin
+  CellClick.ButType:= TButType.None;
+  CellButtons:= CellsButtons[SelectedCell.Row - 1][SelectedCell.Col - 1];
+  if PtInRect(CellButtons.Table, Point(X, Y)) then
+    CellClick.ButType:= TButType.OpenDirectory
+  else if PtInRect(CellButtons.Add, Point(X, Y)) then
+    CellClick.ButType:= TButType.AddRecord
+  else begin
+    Rects:= CellButtons.Edits;
+    for i:= 0 to High(Rects) do
+      if PtInRect(Rects[i], Point(X, Y)) then begin
+        CellClick.ButType:= TButType.EditRecord;
+        CellClick.RecordID:= FTable[SelectedCell.Row - 1][SelectedCell.Col - 1][i].ID;
+        Exit;
+      end;
+
+    Rects:= CellButtons.Deletes;
+    for i:= 0 to High(Rects) do
+      if PtInRect(Rects[i], Point(X, Y)) then begin
+        CellClick.ButType:= TButType.DeleteRecord;
+        CellClick.RecordID:= FTable[SelectedCell.Row - 1][SelectedCell.Col - 1][i].ID;
+        Exit;
+      end;
+  end;
+end;
+
 procedure TTimetableForm.DrawGridMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
-  i: Integer;
-  Rects: array of TRect;
   DefaultValues: TDefaultValues;
   FBSQL: TSQL;
   Con: TCondition;
+  ButtonSel: Integer;
 begin
-  if PtInRect(CellsButtons[SelectedCell.Row - 1][SelectedCell.Col - 1].Table, Point(X, Y)) then
+  if CellClick.ButType = TButType.OpenDirectory then
     DrawGridDblClick(Sender)
-  else if PtInRect(CellsButtons[SelectedCell.Row - 1][SelectedCell.Col - 1].Add, Point(X, Y)) then begin
+  else if CellClick.ButType = TButType.AddRecord then begin
     SetLength(DefaultValues, 2);
     DefaultValues[0].TableID:= RowTableIndex;
     DefaultValues[0].FieldID:= RowsCaption[SelectedCell.Row - 1].ID;
@@ -244,27 +284,34 @@ begin
     DefaultValues[1].FieldID:= ColumnsCaption[SelectedCell.Col - 1].ID;
     TEditCard.Create(Tag, DefaultValues);
   end
-  else begin
-    Rects:= CellsButtons[SelectedCell.Row - 1][SelectedCell.Col - 1].Edits;
-    for i:= 0 to High(Rects) do
-      if PtInRect(Rects[i], Point(X, Y)) then begin
-        TEditCard.Create(Tag, Nil, FTable[SelectedCell.Row - 1][SelectedCell.Col - 1][i].ID);
-        Exit;
-      end;
-
-    Rects:= CellsButtons[SelectedCell.Row - 1][SelectedCell.Col - 1].Deletes;
-    for i:= 0 to High(Rects) do
-      if PtInRect(Rects[i], Point(X, Y)) then begin
-        SQLQuery.Close;
-        Con.Field:= 'ID';
-        Con.Operation:= '=';
-        FBSQL:= TSQL.Create;
-        SQLQuery.SQL.Text:= FBSQL.DeleteRecord(Tag, Con).Query;
-        SQLQuery.Params[0].AsInteger:= FTable[SelectedCell.Row - 1][SelectedCell.Col - 1][i].ID;
-        SQLQuery.ExecSQL;
-        TNotification.UpdateDirectoryForms();
-        Exit;
-      end;
+  else if CellClick.ButType = TButType.EditRecord then begin
+    if not TNotification.IsEditable(Tag) then
+     ShowMessage('Эта таблица используется в данный момент!')
+    else if not TNotification.IsEditable(Tag, CellClick.RecordID) then
+     ShowMessage('Эта запись уже редактируется!')
+    else
+      TEditCard.Create(Tag, Nil, CellClick.RecordID);
+  end
+  else if CellClick.ButType = TButType.DeleteRecord then begin
+    if not TNotification.IsEditable(Tag) then begin
+     ShowMessage('Эта таблица используется в данный момент!');
+     Exit;
+    end
+    else if not TNotification.IsEditable(Tag, CellClick.RecordID) then begin
+      ShowMessage('Эта запись редактируется!');
+      Exit;
+    end;
+    ButtonSel:= messagedlg('Вы точно хотите удалить запись?', mtCustom, [mbYes,mbNo], 0);
+    if ButtonSel = 6then begin
+      SQLQuery.Close;
+      Con.Field:= 'ID';
+      Con.Operation:= '=';
+      FBSQL:= TSQL.Create;
+      SQLQuery.SQL.Text:= FBSQL.DeleteRecord(Tag, Con).Query;
+      SQLQuery.Params[0].AsInteger:= CellClick.RecordID;
+      SQLQuery.ExecSQL;
+      TNotification.UpdateDirectoryForms();
+    end;
   end;
 end;
 

@@ -24,6 +24,7 @@ object TimetableForm: TTimetableForm
     TitleStyle = tsStandard
     OnDblClick = DrawGridDblClick
     OnDrawCell = DrawGridDrawCell
+    OnMouseDown = DrawGridMouseDown
     OnMouseUp = DrawGridMouseUp
     OnSelectCell = DrawGridSelectCell
   end
