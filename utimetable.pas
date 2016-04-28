@@ -38,6 +38,7 @@ type
   TCellButtons = record
     Table, Add: TRect;
     Edits: array of TRect;
+    Deletes: array of TRect;
   end;
 
   { TTimetableForm }
@@ -80,7 +81,7 @@ type
     ColumnsCaption: TCaps;
     Filters: TFilters;
     SelectedCell: TTableCell;
-    CautionPic, TablePic, AddPic, EditPic: TPicture;
+    CautionPic, TablePic, AddPic, EditPic, DeletePic: TPicture;
     CellsButtons: array of array of TCellButtons;
     procedure FillDimensionsComboBox();
     function FillCaptions(TableIndex: Integer; var AFillArray: TCaps): Integer;
@@ -120,6 +121,8 @@ begin
   AddPic.LoadFromFile('img/add.bmp');
   EditPic:= TPicture.Create;
   EditPic.LoadFromFile('img/edit.bmp');
+  DeletePic:= TPicture.Create;
+  DeletePic.LoadFromFile('img/deleteRecord.bmp');
 
   FillDimensionsComboBox();
 end;
@@ -182,11 +185,18 @@ begin
         MarginTop+= 16;
       end;
       MarginTop+= 8;
-      //Edit icon
-      CellsButtons[aRow - 1][aCol - 1].Edits[i]:= Rect(aRect.Right - IconSize -  Margin,
+      //Delete icon
+      CellsButtons[aRow - 1][aCol - 1].Deletes[i]:= Rect(aRect.Right - IconSize - Margin,
         aRect.Top + MarginTop - Margin - IconSize, aRect.Right - Margin,
         aRect.Top + MarginTop - Margin);
       DrawGrid.Canvas.Draw(aRect.Right - IconSize -  Margin,
+       aRect.Top + MarginTop - Margin - IconSize, DeletePic.Graphic);
+
+      //Edit icon
+      CellsButtons[aRow - 1][aCol - 1].Edits[i]:= Rect(aRect.Right - 2 * (IconSize + Margin),
+        aRect.Top + MarginTop - Margin - IconSize, aRect.Right - IconSize - Margin ,
+        aRect.Top + MarginTop - Margin);
+      DrawGrid.Canvas.Draw(aRect.Right - 2 * (IconSize + Margin),
        aRect.Top + MarginTop - Margin - IconSize, EditPic.Graphic);
 
       //Line
@@ -219,8 +229,10 @@ procedure TTimetableForm.DrawGridMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
   i: Integer;
-  Edits: array of TRect;
+  Rects: array of TRect;
   DefaultValues: TDefaultValues;
+  FBSQL: TSQL;
+  Con: TCondition;
 begin
   if PtInRect(CellsButtons[SelectedCell.Row - 1][SelectedCell.Col - 1].Table, Point(X, Y)) then
     DrawGridDblClick(Sender)
@@ -233,13 +245,26 @@ begin
     TEditCard.Create(Tag, DefaultValues);
   end
   else begin
-    Edits:= CellsButtons[SelectedCell.Row - 1][SelectedCell.Col - 1].Edits;
-    for i:= 0 to High(Edits) do begin
-        if PtInRect(Edits[i], Point(X, Y)) then begin
-          TEditCard.Create(Tag, Nil, FTable[SelectedCell.Row - 1][SelectedCell.Col - 1][i].ID);
-          Exit;
-        end;
-    end;
+    Rects:= CellsButtons[SelectedCell.Row - 1][SelectedCell.Col - 1].Edits;
+    for i:= 0 to High(Rects) do
+      if PtInRect(Rects[i], Point(X, Y)) then begin
+        TEditCard.Create(Tag, Nil, FTable[SelectedCell.Row - 1][SelectedCell.Col - 1][i].ID);
+        Exit;
+      end;
+
+    Rects:= CellsButtons[SelectedCell.Row - 1][SelectedCell.Col - 1].Deletes;
+    for i:= 0 to High(Rects) do
+      if PtInRect(Rects[i], Point(X, Y)) then begin
+        SQLQuery.Close;
+        Con.Field:= 'ID';
+        Con.Operation:= '=';
+        FBSQL:= TSQL.Create;
+        SQLQuery.SQL.Text:= FBSQL.DeleteRecord(Tag, Con).Query;
+        SQLQuery.Params[0].AsInteger:= FTable[SelectedCell.Row - 1][SelectedCell.Col - 1][i].ID;
+        SQLQuery.ExecSQL;
+        TNotification.UpdateDirectoryForms();
+        Exit;
+      end;
   end;
 end;
 
@@ -450,6 +475,7 @@ begin
   end;
 
   SetLength(CellsButtons[Y][X].Edits, Length(FTable[Y][X]));
+  SetLength(CellsButtons[Y][X].Deletes, Length(FTable[Y][X]));
 end;
 
 end.

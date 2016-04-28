@@ -18,7 +18,7 @@ object TimetableForm: TTimetableForm
     DefaultRowHeight = 200
     ExtendedSelect = False
     MouseWheelOption = mwGrid
-    Options = [goVertLine, goHorzLine, goRangeSelect, goRowSizing, goColSizing, goThumbTracking]
+    Options = [goVertLine, goHorzLine, goRangeSelect, goRowSizing, goColSizing, goSmoothScroll]
     RowCount = 1
     TabOrder = 0
     TitleStyle = tsStandard
