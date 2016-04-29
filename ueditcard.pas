@@ -43,7 +43,8 @@ type
     procedure AddButClick(Sender: TObject);
   public
     SetCursorPosition: TNotifyEvent;
-    constructor Create(ATableIndex: Integer; ASetCursorPos: TNotifyEvent; AFieldID: Integer = -1); overload;
+    constructor Create(ATableIndex: Integer; ASetCursorPos: TNotifyEvent;
+      AFieldID: Integer = -1; AVisible: Boolean = True); overload;
     constructor Create(ATableIndex: Integer; ADefaultValues: TDefaultValues); overload;
     constructor Create(ATableIndex, AFieldID: Integer; ADefaultValues: TDefaultValues); overload;
     procedure EditButClick(Sender: TObject);
@@ -89,7 +90,8 @@ begin
   SQLQuery.Open;
 end;
 
-constructor TEditCard.Create(ATableIndex: Integer; ASetCursorPos: TNotifyEvent; AFieldID: Integer = -1);
+constructor TEditCard.Create(ATableIndex: Integer; ASetCursorPos: TNotifyEvent;
+  AFieldID: Integer = -1; AVisible: Boolean = True);
 var
   i, j, k: Integer;
   Field: TField;
@@ -100,6 +102,7 @@ var
 begin
   inherited Create(Application);
 
+  Visible:= AVisible;
   TableIndex:= ATableIndex;
   FieldID:= AFieldID;
   FBSQL:= TSQL.Create;
@@ -170,7 +173,7 @@ begin
     DefaultValues[i]:= ADefaultValues[i];
 
   Event:= Nil;
-  Create(ATableIndex, Event, AFieldID);
+  Create(ATableIndex, Event, AFieldID, False);
 end;
 
 procedure TEditCard.AddButClick(Sender: TObject);
@@ -266,6 +269,7 @@ var
   FEditor: TEditor;
   Field: TField;
   CurText, LabelText: String;
+  isSetDefaultValues: Boolean;
 begin
   TNotification.AddToProtect(ATableIndex);
   for i:= 1 to High(Tables[ATableIndex].Fields) do
@@ -281,6 +285,7 @@ begin
   FEditor.Control:= TComboBox.Create(ScrollBox);
   FEditor.CountFields:= Length(Tables[ATableIndex].Fields) - 1;
   FEditor.TableIndex:= ATableIndex;
+  isSetDefaultValues:= False;
   for i:= 1 to High(Tables[ATableIndex].Fields) do begin
     Field:= Tables[ATableIndex].Fields[i];
     with FEditor.Control as TComboBox do begin
@@ -305,11 +310,13 @@ begin
         end
         else
           Items[k]:= Items[k] + ' ' + CurText;
-        if (Items[k] = ACaption) and (Length(DefaultValues) = 0) then
+        if (Items[k] = ACaption) and (not isSetDefaultValues) then
            ItemIndex:= k;
         for j:= 0 to High(DefaultValues) do
-          if (ATableIndex = DefaultValues[j].TableID) and (FEditor.IDs[k] = DefaultValues[j].FieldID) then
+          if (ATableIndex = DefaultValues[j].TableID) and (FEditor.IDs[k] = DefaultValues[j].FieldID) then begin
                ItemIndex:= k;
+               isSetDefaultValues:= True;
+          end;
 
         SQLQuery.Next;
         Inc(k);

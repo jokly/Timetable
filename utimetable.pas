@@ -293,8 +293,11 @@ end;
 
 procedure TTimetableForm.DrawGridDragOver(Sender, Source: TObject; X,
   Y: Integer; State: TDragState; var Accept: Boolean);
+var
+  aCol, aRow: Integer;
 begin
-
+  DrawGrid.MouseToCell(X, Y, aCol, aRow);
+  Accept:= (aCol > 0) and (aRow > 0);
 end;
 
 procedure TTimetableForm.DrawGridDragDrop(Sender, Source: TObject; X, Y: Integer);
@@ -310,6 +313,7 @@ begin
   DefaultValues[1].TableID:= ColTableIndex;
   DefaultValues[1].FieldID:= ColumnsCaption[aCol - 1].ID;
   EditCard:= TEditCard.Create(Tag, CellClick.RecordID, DefaultValues);
+  EditCard.Visible:= False;
   EditCard.EditButClick(Sender);
 end;
 

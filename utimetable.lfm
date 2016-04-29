@@ -1,7 +1,7 @@
 object TimetableForm: TTimetableForm
-  Left = 291
+  Left = 338
   Height = 475
-  Top = 78
+  Top = 148
   Width = 819
   Caption = 'Расписание'
   ClientHeight = 475
