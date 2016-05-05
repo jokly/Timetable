@@ -144,6 +144,8 @@ var
   i: Integer;
   SysConditions: array of TSystemCondition;
 begin
+  if (SelectedCell.Row = 0) or (SelectedCell.Col = 0) then
+    Exit;
   SetLength(SysConditions, 2 + Length(Filters.Filters));
   SysConditions[0].Condition.Field:= Tables[ColTableIndex].TDBName + '.ID';
   SysConditions[0].Condition.Operation:= '=';
@@ -198,11 +200,13 @@ begin
       end;
       MarginTop+= 8;
       //Delete icon
-      CellsButtons[aRow - 1][aCol - 1].Deletes[i]:= Rect(aRect.Right - IconSize - Margin,
-        aRect.Top + MarginTop - Margin - IconSize, aRect.Right - Margin,
-        aRect.Top + MarginTop - Margin);
-      DrawGrid.Canvas.Draw(aRect.Right - IconSize -  Margin,
-       aRect.Top + MarginTop - Margin - IconSize, DeletePic.Graphic);
+      CellsButtons[aRow - 1][aCol - 1].Deletes[i]:= Rect(
+        aRect.Right - IconSize - Margin,
+        aRect.Top + MarginTop - Margin - IconSize,
+        aRect.Right - Margin, aRect.Top + MarginTop - Margin);
+      DrawGrid.Canvas.Draw(
+        aRect.Right - IconSize -  Margin,
+        aRect.Top + MarginTop - Margin - IconSize, DeletePic.Graphic);
 
       //Edit icon
       CellsButtons[aRow - 1][aCol - 1].Edits[i]:= Rect(aRect.Right - 2 * (IconSize + Margin),
@@ -244,12 +248,17 @@ end;
 procedure TTimetableForm.DrawGridMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
-  i: Integer;
+  i, aCol, aRow: Integer;
+  CanSelect: Boolean;
   CellButtons: TCellButtons;
   Rects: array of TRect;
   FRect: TRect;
 begin
+  DrawGrid.MouseToCell(X, Y, aCol, aRow);
+  DrawGridSelectCell(Sender, aCol, aRow, CanSelect);
   CellClick.ButType:= TButType.None;
+  if (SelectedCell.Col = 0) or (SelectedCell.Row = 0) then
+    Exit;
   CellButtons:= CellsButtons[SelectedCell.Row - 1][SelectedCell.Col - 1];
   if PtInRect(CellButtons.Table, Point(X, Y)) then
     CellClick.ButType:= TButType.OpenDirectory

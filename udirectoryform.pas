@@ -153,6 +153,8 @@ var
   FieldID: Integer;
   EditCard: TEditCard;
 begin
+  if DBGrid.DataSource.DataSet.RecordCount = 0 then
+     Exit;
   SelectedRow:= DBGrid.DataSource.DataSet.RecNo;
   FieldID:= DBGrid.DataSource.DataSet.Fields.Fields[0].AsInteger;
   if not TNotification.IsEditable(Tag) then
