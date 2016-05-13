@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, Menus,
-  UMetadata, UDirectoryForm, UTimeTable;
+  UMetadata, UDirectoryForm, UTimeTable, UConflicts;
 
 type
 

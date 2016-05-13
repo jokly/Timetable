@@ -6,12 +6,12 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, Grids,
-  StdCtrls, ExtCtrls, sqldb, math, Types, UMetadata, USQL, UFilter,
-  UDirectoryForm, UEditCard, UNotification;
+  StdCtrls, ExtCtrls, Menus, sqldb, math, Types, UMetadata, USQL, UFilter,
+  UDirectoryForm, UEditCard, UNotification, UConflicts;
 
 type
 
-  TButType = (OpenDirectory, AddRecord, EditRecord, DeleteRecord, None);
+  TButType = (OpenDirectory, AddRecord, EditRecord, DeleteRecord, Warning, None);
 
   TManageButton = record
     ButType: TButType;
@@ -43,7 +43,7 @@ type
   end;
 
   TCellButtons = record
-    Table, Add: TRect;
+    Table, Add, Warning: TRect;
     Edits: array of TRect;
     Deletes: array of TRect;
   end;
@@ -64,6 +64,10 @@ type
     GroupBoxDimensions: TGroupBox;
     LabelHor: TLabel;
     LabelVer: TLabel;
+    MainMenu: TMainMenu;
+    MConflicts: TMenuItem;
+    MTreeConflicts: TMenuItem;
+    MDirectoryConflicts: TMenuItem;
     Panel: TPanel;
     PanelLeft: TPanel;
     ScrollBoxFilters: TScrollBox;
@@ -83,6 +87,7 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure DrawGridSelectCell(Sender: TObject; aCol, aRow: Integer;
       var CanSelect: Boolean);
+    procedure MTreeConflictsClick(Sender: TObject);
     procedure OnChangeOption(Sender: TObject);
   private
     { private declarations }
@@ -93,7 +98,6 @@ type
     Filters: TFilters;
     SelectedCell: TTableCell;
     CellClick: TManageButton;
-    CautionPic, TablePic, AddPic, EditPic, DeletePic: TPicture;
     CellsButtons: array of array of TCellButtons;
     procedure FillDimensionsComboBox();
     function FillCaptions(TableIndex: Integer; var AFillArray: TCaps): Integer;
@@ -113,6 +117,9 @@ implementation
 
 const
   IconSize = 16;
+
+var
+  CautionPic, TablePic, AddPic, EditPic, DeletePic, WarningPic: TPicture;
 
 {$R *.lfm}
 
@@ -135,8 +142,11 @@ begin
   EditPic.LoadFromFile('img/edit.bmp');
   DeletePic:= TPicture.Create;
   DeletePic.LoadFromFile('img/deleteRecord.bmp');
+  WarningPic:= TPicture.Create;
+  WarningPic.LoadFromFile('img/warning.bmp');
 
   FillDimensionsComboBox();
+  TConflictsForm.CheckConflicts();
 end;
 
 procedure TTimetableForm.DrawGridDblClick(Sender: TObject);
@@ -146,6 +156,7 @@ var
 begin
   if (SelectedCell.Row = 0) or (SelectedCell.Col = 0) then
     Exit;
+
   SetLength(SysConditions, 2 + Length(Filters.Filters));
   SysConditions[0].Condition.Field:= Tables[ColTableIndex].TDBName + '.ID';
   SysConditions[0].Condition.Operation:= '=';
@@ -169,7 +180,7 @@ procedure TTimetableForm.DrawGridDrawCell(Sender: TObject; aCol, aRow: Integer;
 const
   Margin = 3;
 var
-  i, j, MarginTop, TextWidth: Integer;
+  i, j, k, g, MarginTop, TextWidth: Integer;
   FRecord: array of String;
   Str: String;
 begin
@@ -184,7 +195,7 @@ begin
     DrawGrid.Canvas.TextOut(aRect.Left + 5, aRect.Top + 2, ColumnsCaption[aCol - 1].Value);
   end
   else begin
-    MarginTop:= 8;
+    MarginTop:= 16;
     TextWidth:= 0;
     DrawGrid.Canvas.Pen.Style:= psDash;
     for i:= 0 to High(FTable[aRow - 1][aCol - 1]) do begin
@@ -199,6 +210,23 @@ begin
         MarginTop+= 16;
       end;
       MarginTop+= 8;
+
+      for j:= 0 to High(Conflicts) do begin
+        for k:= 0 to High(Conflicts[j]) do begin
+          for g:= 0 to High(Conflicts[j][k]) do begin
+            if Conflicts[j][k][g] = FTable[aRow - 1][aCol - 1][i].ID then begin
+              //Warning icon
+              CellsButtons[aRow - 1][aCol - 1].Warning:= Rect(
+                aRect.Right - IconSize - Margin,
+                aRect.Top + Margin,
+                aRect.Right - Margin, aRect.Top + IconSize + Margin);
+              DrawGrid.Canvas.Draw(aRect.Right - IconSize -  Margin,
+                aRect.Top + Margin, WarningPic.Graphic);
+            end;
+          end;
+        end;
+      end;
+
       //Delete icon
       CellsButtons[aRow - 1][aCol - 1].Deletes[i]:= Rect(
         aRect.Right - IconSize - Margin,
@@ -264,6 +292,8 @@ begin
     CellClick.ButType:= TButType.OpenDirectory
   else if PtInRect(CellButtons.Add, Point(X, Y)) then
     CellClick.ButType:= TButType.AddRecord
+  else if PtInRect(CellButtons.Warning, Point(X, Y)) then
+    CellClick.ButType:= TButType.Warning
   else begin
     Rects:= CellButtons.Edits;
     for i:= 0 to High(Rects) do
@@ -343,6 +373,7 @@ begin
     DefaultValues[1].TableID:= ColTableIndex;
     DefaultValues[1].FieldID:= ColumnsCaption[SelectedCell.Col - 1].ID;
     TEditCard.Create(Tag, DefaultValues);
+    TConflictsForm.CheckConflicts();
   end
   else if CellClick.ButType = TButType.EditRecord then begin
     if not TNotification.IsEditable(Tag) then
@@ -351,6 +382,7 @@ begin
      ShowMessage('Эта запись уже редактируется!')
     else
       TEditCard.Create(Tag, Nil, CellClick.RecordID);
+    TConflictsForm.CheckConflicts();
   end
   else if CellClick.ButType = TButType.DeleteRecord then begin
     if not TNotification.IsEditable(Tag) then begin
@@ -372,6 +404,10 @@ begin
       SQLQuery.ExecSQL;
       TNotification.UpdateDirectoryForms();
     end;
+    TConflictsForm.CheckConflicts();
+  end
+  else if CellClick.ButType = TButType.Warning then begin
+
   end;
 end;
 
@@ -380,6 +416,11 @@ procedure TTimetableForm.DrawGridSelectCell(Sender: TObject; aCol,
 begin
   SelectedCell.Col:= aCol;
   SelectedCell.Row:= aRow;
+end;
+
+procedure TTimetableForm.MTreeConflictsClick(Sender: TObject);
+begin
+  TConflictsForm.Create(Self);
 end;
 
 procedure TTimetableForm.SetSizeCells;

@@ -28,6 +28,7 @@ TNotification = class(TObject)
 end;
 
 implementation
+
 var
   Events: array of TNotifyEvent;
   ProtectTables: array of Integer;

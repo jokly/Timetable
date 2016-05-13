@@ -1,0 +1,37 @@
+object ConflictsForm: TConflictsForm
+  Left = 38
+  Height = 484
+  Top = 81
+  Width = 737
+  Caption = 'Конфликты'
+  ClientHeight = 484
+  ClientWidth = 737
+  OnCreate = FormCreate
+  LCLVersion = '1.6.0.4'
+  object TreeView: TTreeView
+    Left = 0
+    Height = 484
+    Top = 0
+    Width = 737
+    Align = alClient
+    DefaultItemHeight = 18
+    ReadOnly = True
+    TabOrder = 0
+    OnChange = TreeViewChange
+    Options = [tvoAutoItemHeight, tvoHideSelection, tvoKeepCollapsedNodes, tvoReadOnly, tvoShowButtons, tvoShowLines, tvoShowRoot, tvoToolTips, tvoThemedDraw]
+  end
+  object SQLQuery: TSQLQuery
+    FieldDefs = <>
+    Database = DBConnection.IBConnection
+    Transaction = DBConnection.SQLTransaction
+    Options = []
+    Params = <>
+    left = 24
+    top = 16
+  end
+  object DataSource: TDataSource
+    DataSet = SQLQuery
+    left = 80
+    top = 16
+  end
+end

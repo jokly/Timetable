@@ -38,7 +38,15 @@ type
       function AddField(AField: TField): TTable;
   end;
 
+  { TConflictType }
+
+  TConflictType = record
+    Name: String;
+    Columns: array of String;
+  end;
+
 var
+  ConflictTypes: array of TConflictType;
   Tables: array of TTable;
 
 implementation
@@ -87,6 +95,21 @@ begin
   Visible:= AVisible;
 end;
 
+{ TConflictType }
+
+procedure AddConflictType(AName: String; AColumns: array of String);
+var
+  i: Integer;
+begin
+  SetLength(ConflictTypes, Length(ConflictTypes) + 1);
+  ConflictTypes[High(ConflictTypes)].Name:= AName;
+  with ConflictTypes[High(ConflictTypes)] do begin
+    SetLength(Columns, Length(AColumns));
+    for i:= 0 to High(AColumns) do
+      Columns[i]:= AColumns[i];
+  end;
+end;
+
 initialization
 
 TTable.AddTable('CLASSROOMS', 'Аудитории')
@@ -130,5 +153,12 @@ TTable.AddTable('TIMETABLE', 'Расписание')
    .AddField(TLink.Create('CLASSROOM_ID', 'Аудитория', 0, 0, True, 200))
    .AddField(TLink.Create('WEEKDAY_ID', 'День недели', 6, 0, True, 200))
    .AddField(TLink.Create('LESSON_TIME_ID', 'Время', 3, 0, True, 200));
+
+AddConflictType('В одной аудитории одновременно ведут 2-а перподавателя',
+  ['CLASSROOM_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID']);
+AddConflictType('Преподаватель одновременно ведет пары в 2-ух разных аудиториях',
+  ['TEACHER_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID']);
+AddConflictType('У 1-ой группы одновременно проходит несколько пар',
+  ['GROUP_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID']);
 end.
 

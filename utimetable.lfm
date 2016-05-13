@@ -1,16 +1,17 @@
 object TimetableForm: TTimetableForm
-  Left = 338
+  Left = 306
   Height = 475
-  Top = 148
+  Top = 91
   Width = 819
   Caption = 'Расписание'
-  ClientHeight = 475
+  ClientHeight = 455
   ClientWidth = 819
+  Menu = MainMenu
   LCLVersion = '1.6.0.4'
   Visible = True
   object DrawGrid: TDrawGrid
     Left = 0
-    Height = 313
+    Height = 293
     Top = 0
     Width = 819
     Align = alClient
@@ -33,7 +34,7 @@ object TimetableForm: TTimetableForm
   object Panel: TPanel
     Left = 0
     Height = 162
-    Top = 313
+    Top = 293
     Width = 819
     Align = alBottom
     ClientHeight = 162
@@ -185,5 +186,19 @@ object TimetableForm: TTimetableForm
     Params = <>
     left = 88
     top = 8
+  end
+  object MainMenu: TMainMenu
+    left = 144
+    top = 8
+    object MConflicts: TMenuItem
+      Caption = 'Конфликты'
+      object MTreeConflicts: TMenuItem
+        Caption = 'Дерево'
+        OnClick = MTreeConflictsClick
+      end
+      object MDirectoryConflicts: TMenuItem
+        Caption = 'Список'
+      end
+    end
   end
 end
