@@ -362,7 +362,8 @@ var
   DefaultValues: TDefaultValues;
   FBSQL: TSQL;
   Con: TCondition;
-  ButtonSel: Integer;
+  i, ButtonSel: Integer;
+  FIDs: array of Integer;
 begin
   if CellClick.ButType = TButType.OpenDirectory then
     DrawGridDblClick(Sender)
@@ -407,7 +408,11 @@ begin
     TConflictsForm.CheckConflicts();
   end
   else if CellClick.ButType = TButType.Warning then begin
+    SetLength(FIDs, Length(FTable[SelectedCell.Row - 1][SelectedCell.Col - 1]));
+    for i:= 0 to High(FIDs) do
+      FIDs[i]:= FTable[SelectedCell.Row - 1][SelectedCell.Col - 1][i].ID;
 
+    TConflictsForm.Create(FIDs);
   end;
 end;
 

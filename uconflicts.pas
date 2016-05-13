@@ -19,10 +19,13 @@ type
     procedure FormCreate(Sender: TObject);
     procedure TreeViewChange(Sender: TObject; Node: TTreeNode);
   private
+    VisibleIDs: array of Integer;
     class procedure AddToConflicts(AConflictType, ACurrConflict, AId: Integer);
     procedure UpdateTreeView(Sender: TObject);
     function GetConflictInfo(AConflictType, AID: Integer): String;
+    procedure DeleteEmptyBranch(ALevel: Integer);
   public
+    constructor Create(AIDs: array of Integer); overload;
     class procedure CheckConflicts();
   end;
 
@@ -65,7 +68,6 @@ var
   CurrRecord: array of Integer;
   IsConflict: Boolean;
   UsedRecord: array of Boolean;
-  st: String;
 begin
   SetLength(Conflicts, 0);
   SetLength(Conflicts, Length(ConflictTypes));
@@ -93,7 +95,6 @@ begin
       for g:= 0 to High(ConflictTypes[i].Columns) do
         CurrRecord[g]:= DataSet.FieldByName(ConflictTypes[i].Columns[g]).AsInteger;
       CurrRecord[g + 1]:= DataSet.FieldByName('ID').AsInteger;
-      st += IntToStr(CurrRecord[g + 1]) + ' ';
       for k:= j + 1 to RecCount - 1 do begin
         DataSet.Next;
         IsConflict:= True;
@@ -115,19 +116,6 @@ begin
       end;
     end;
   end;
-
-  st:= '';
-  for i:= 0 to High(Conflicts) do begin
-    st += IntToStr(i) + '{';
-    for j:= 0 to High(Conflicts[i]) do begin
-      st += IntToStr(j) + ': ';
-      for k:= 0 to High(Conflicts[i][j]) do
-        st += IntToStr(Conflicts[i][j][k]) + ' ';
-      st+= '| '
-    end;
-    st += '}';
-  end;
-  SetLength(Conflicts, Length(Conflicts));
 end;
 
 class procedure TConflictsForm.AddToConflicts(AConflictType, ACurrConflict, AId: Integer);
@@ -148,13 +136,26 @@ begin
   Visible:= True;
 end;
 
+constructor TConflictsForm.Create(AIDs: array of Integer);
+var
+  i: Integer;
+begin
+  SetLength(VisibleIDs, Length(AIDs));
+  for i:= 0 to High(AIDs) do
+    VisibleIDs[i]:= AIDs[i];
+  i:= Length(VisibleIDs);
+
+  inherited Create(Application);
+end;
+
 procedure TConflictsForm.UpdateTreeView(Sender: TObject);
 var
   FBSQL: TSQL;
   RecStr: String;
   ID: ^Integer;
   i, j, k, g: Integer;
-  TypeNode, ConfNode: TTreeNode;
+  TypeNode, ConfNode, Node, DelNode: TTreeNode;
+  IsDelete: Boolean;
 begin
   TConflictsForm.CheckConflicts();
   TreeView.Items.Clear;
@@ -171,13 +172,54 @@ begin
       for k:= 0 to High(Conflicts[i][j]) do begin
         DataSource.DataSet.Locate('ID', Conflicts[i][j][k], []);
         RecStr:= '';
-        for g:= 0 to DataSource.DataSet.FieldCount - 1 do
+        for g:= 1 to DataSource.DataSet.FieldCount - 1 do
           RecStr += DataSource.DataSet.Fields.Fields[g].AsString + ' ';
         New(ID);
         ID^:= DataSource.DataSet.Fields.Fields[0].AsInteger;
         TreeView.Items.AddChildObject(ConfNode, RecStr, ID);
       end;
     end;
+  end;
+
+  if Length(VisibleIDs) = 0 then
+      Exit;
+
+  Node := TreeView.Items.GetFirstNode;
+  while Assigned(Node) do begin
+    if (Node.Data <> Nil) then begin
+      IsDelete:= True;
+      for i:= 0 to High(VisibleIDs) do begin
+        if Integer(Node.Data^) = VisibleIDs[i] then begin
+          IsDelete:= False;
+          Break;
+        end;
+      end;
+      if IsDelete then begin
+        i:= Integer(Node.Data^);
+        DelNode:= Node;
+        Node := Node.GetPrev;
+        TreeView.Items.Delete(DelNode);
+      end;
+    end;
+    Node := Node.GetNext;
+  end;
+
+  DeleteEmptyBranch(1);
+end;
+
+procedure TConflictsForm.DeleteEmptyBranch(ALevel: Integer);
+var
+  Node, DelNode: TTreeNode;
+begin
+  Node := TreeView.Items.GetFirstNode;
+
+  while Assigned(Node) do begin
+    if (Node.Level = ALevel) and (Node.Count = 0) then begin
+      DelNode:= Node;
+      Node := Node.GetPrev;
+      TreeView.Items.Delete(DelNode);
+    end;
+    Node:= Node.GetNext;
   end;
 end;
 
