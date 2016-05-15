@@ -39,7 +39,7 @@
         <PackageName Value="LCL"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="11">
+    <Units Count="12">
       <Unit0>
         <Filename Value="Timetable.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -112,6 +112,11 @@
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="UConflicts"/>
       </Unit10>
+      <Unit11>
+        <Filename Value="uconverter.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="UConverter"/>
+      </Unit11>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

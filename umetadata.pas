@@ -38,6 +38,26 @@ type
       function AddField(AField: TField): TTable;
   end;
 
+  {Records for TimeTable}
+
+  TRecord = record
+    Rec: array of String;
+    ID: Integer;
+  end;
+
+  TCell = array of TRecord;
+
+  TTimeTable = array of array of TCell;
+
+  TCap = record
+    Value: String;
+    ID: Integer;
+    isEmpty: Boolean;
+  end;
+
+  TCaps = array of TCap;
+  TFieldsName = array of String;
+
   { TConflictType }
 
   TConflictType = record

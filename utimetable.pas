@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, Grids,
   StdCtrls, ExtCtrls, Menus, sqldb, math, Types, UMetadata, USQL, UFilter,
-  UDirectoryForm, UEditCard, UNotification, UConflicts;
+  UDirectoryForm, UEditCard, UNotification, UConflicts, UConverter;
 
 type
 
@@ -17,21 +17,6 @@ type
     ButType: TButType;
     RecordID: Integer;
   end;
-
-  TRecord = record
-    Rec: array of String;
-    ID: Integer;
-  end;
-
-  TCell = array of TRecord;
-
-  TCap = record
-    Value: String;
-    ID: Integer;
-    isEmpty: Boolean;
-  end;
-
-  TCaps = array of TCap;
 
   TTableCell = record
     Row, Col: Integer;
@@ -66,10 +51,13 @@ type
     LabelVer: TLabel;
     MainMenu: TMainMenu;
     MConflicts: TMenuItem;
+    MSaveAs: TMenuItem;
+    MFile: TMenuItem;
     MTreeConflicts: TMenuItem;
     MDirectoryConflicts: TMenuItem;
     Panel: TPanel;
     PanelLeft: TPanel;
+    SaveDialog: TSaveDialog;
     ScrollBoxFilters: TScrollBox;
     SQLQuery: TSQLQuery;
     procedure ButShowTableClick(Sender: TObject);
@@ -87,12 +75,13 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure DrawGridSelectCell(Sender: TObject; aCol, aRow: Integer;
       var CanSelect: Boolean);
+    procedure MSaveAsClick(Sender: TObject);
     procedure MTreeConflictsClick(Sender: TObject);
     procedure OnChangeOption(Sender: TObject);
   private
     { private declarations }
-    FTable: array of array of TCell;
-    FieldsName: array of String;
+    FTable: TTimeTable;
+    FieldsName: TFieldsName;
     ColTableIndex, RowTableIndex, RecordHeight: Integer;
     RowsCaption, ColumnsCaption: TCaps;
     Filters: TFilters;
@@ -421,6 +410,19 @@ procedure TTimetableForm.DrawGridSelectCell(Sender: TObject; aCol,
 begin
   SelectedCell.Col:= aCol;
   SelectedCell.Row:= aRow;
+end;
+
+procedure TTimetableForm.MSaveAsClick(Sender: TObject);
+begin
+  if not SaveDialog.Execute then
+    Exit;
+
+  case SaveDialog.FilterIndex of
+    1: Converter.SaveToHtml(SaveDialog.FileName, RowsCaption, ColumnsCaption,
+      FTable, FieldsName);
+    2: Converter.SaveToExcel(SaveDialog.FileName, RowsCaption, ColumnsCaption,
+      FTable, FieldsName);
+  end;
 end;
 
 procedure TTimetableForm.MTreeConflictsClick(Sender: TObject);

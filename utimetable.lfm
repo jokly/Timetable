@@ -1,7 +1,7 @@
 object TimetableForm: TTimetableForm
-  Left = 306
+  Left = 2
   Height = 475
-  Top = 91
+  Top = 57
   Width = 819
   Caption = 'Расписание'
   ClientHeight = 455
@@ -190,6 +190,13 @@ object TimetableForm: TTimetableForm
   object MainMenu: TMainMenu
     left = 144
     top = 8
+    object MFile: TMenuItem
+      Caption = 'Файл'
+      object MSaveAs: TMenuItem
+        Caption = 'Сохранить как...'
+        OnClick = MSaveAsClick
+      end
+    end
     object MConflicts: TMenuItem
       Caption = 'Конфликты'
       object MTreeConflicts: TMenuItem
@@ -200,5 +207,10 @@ object TimetableForm: TTimetableForm
         Caption = 'Список'
       end
     end
+  end
+  object SaveDialog: TSaveDialog
+    Filter = 'Html|.html|Excel|.xls'
+    left = 192
+    top = 8
   end
 end
