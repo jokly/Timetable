@@ -25,6 +25,12 @@ type
     AppName, DBName: String;
   end;
 
+  TFilterStrings = record
+    AppField, Operation, Value: String;
+  end;
+
+  TFiltersStrings = array of TFilterStrings;
+
   TConditions = array of TCondition;
 
   { TFilters }
@@ -41,6 +47,7 @@ type
       procedure DeleteFilter(Sender: TObject; Button: TMouseButton;
         Shift: TShiftState; X, Y: Integer);
       function ToConditions(): TConditions;
+      function ToFiltersStrings(): TFiltersStrings;
     private
       CurrentFilterY: Integer;
   end;
@@ -197,6 +204,19 @@ begin
   end;
 
   Result:= Conds;
+end;
+
+function TFilters.ToFiltersStrings: TFiltersStrings;
+var
+  i: Integer;
+begin
+  SetLength(Result, Length(Filters));
+
+  for i:= 0 to High(Filters) do begin
+    Result[i].AppField:= Filters[i].Fields.Text;
+    Result[i].Operation:= Filters[i].Operations.Text;
+    Result[i].Value:= Filters[i].Constant.Text;
+  end;
 end;
 
 end.

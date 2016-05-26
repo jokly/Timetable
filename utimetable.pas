@@ -419,9 +419,9 @@ begin
 
   case SaveDialog.FilterIndex of
     1: Converter.SaveToHtml(SaveDialog.FileName, RowsCaption, ColumnsCaption,
-      FTable, FieldsName);
+      FTable, FieldsName, CheckBoxDisplayFieldName.Checked, Filters.ToFiltersStrings());
     2: Converter.SaveToExcel(SaveDialog.FileName, RowsCaption, ColumnsCaption,
-      FTable, FieldsName);
+      FTable, FieldsName, CheckBoxDisplayFieldName.Checked,  Filters.ToFiltersStrings());
   end;
 end;
 
