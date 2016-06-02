@@ -65,7 +65,7 @@ var
   i, j, k, g, CurrConflict, RecCount: Integer;
   FBSQL: TSQL;
   DataSet: TDataSet;
-  CurrRecord: array of Integer;
+  SameFields, DifFields: array of Integer;
   IsConflict: Boolean;
   UsedRecord: array of Boolean;
 begin
@@ -88,25 +88,45 @@ begin
     CurrConflict:= -1;
     for g:= 0 to High(UsedRecord) do
       UsedRecord[g]:= False;
+
     for j:= 0 to RecCount - 2 do begin
       DataSet.First;
       DataSet.MoveBy(j);
-      SetLength(CurrRecord, Length(ConflictTypes[i].Columns) + 1);
-      for g:= 0 to High(ConflictTypes[i].Columns) do
-        CurrRecord[g]:= DataSet.FieldByName(ConflictTypes[i].Columns[g]).AsInteger;
-      CurrRecord[g + 1]:= DataSet.FieldByName('ID').AsInteger;
+      if UsedRecord[j] then
+          Continue;
+
+      SetLength(SameFields, Length(ConflictTypes[i].SameColumns) + 1);
+      for g:= 0 to High(ConflictTypes[i].SameColumns) do
+        SameFields[g]:= DataSet.FieldByName(ConflictTypes[i].SameColumns[g]).AsInteger;
+      SameFields[g + 1]:= DataSet.FieldByName('ID').AsInteger;
+
+      SetLength(DifFields, Length(ConflictTypes[i].DifferentColumns));
+      for g:= 0 to High(ConflictTypes[i].DifferentColumns) do
+        DifFields[g]:= DataSet.FieldByName(ConflictTypes[i].DifferentColumns[g]).AsInteger;
+
       for k:= j + 1 to RecCount - 1 do begin
         DataSet.Next;
+        if UsedRecord[k] then
+          Continue;
         IsConflict:= True;
-        for g:= 0 to High(ConflictTypes[i].Columns) do
-          if CurrRecord[g] <> DataSet.FieldByName(ConflictTypes[i].Columns[g]).AsInteger then begin
+        for g:= 0 to High(ConflictTypes[i].SameColumns) do begin
+          if SameFields[g] <> DataSet.FieldByName(ConflictTypes[i].SameColumns[g]).AsInteger then begin
             IsConflict:= False;
             Break;
           end;
+        end;
+        if IsConflict then begin
+          for g:= 0 to High(ConflictTypes[i].DifferentColumns) do begin
+            if DifFields[g] = DataSet.FieldByName(ConflictTypes[i].DifferentColumns[g]).AsInteger then begin
+              IsConflict:= False;
+              Break;
+            end;
+          end;
+        end;
         if IsConflict then begin
           if not UsedRecord[j] then begin
             Inc(CurrConflict);
-            AddToConflicts(i, CurrConflict, CurrRecord[High(CurrRecord)]);
+            AddToConflicts(i, CurrConflict, SameFields[High(SameFields)]);
           end;
           if not UsedRecord[k] then
             AddToConflicts(i, CurrConflict, DataSet.FieldByName('ID').AsInteger);
@@ -173,7 +193,7 @@ begin
         DataSource.DataSet.Locate('ID', Conflicts[i][j][k], []);
         RecStr:= '';
         for g:= 1 to DataSource.DataSet.FieldCount - 1 do
-          RecStr += DataSource.DataSet.Fields.Fields[g].AsString + ' ';
+          RecStr += DataSource.DataSet.Fields.Fields[g].AsString + ' | ';
         New(ID);
         ID^:= DataSource.DataSet.Fields.Fields[0].AsInteger;
         TreeView.Items.AddChildObject(ConfNode, RecStr, ID);
@@ -230,16 +250,16 @@ var
   DataSet: TDataSet;
   FBSQL: TSQL;
 begin
-  SetLength(Info, Length(ConflictTypes[AConflictType].Columns));
+  SetLength(Info, Length(ConflictTypes[AConflictType].SameColumns));
   FBSQL:= TSQL.Create;
   DataSet:= CreateDataSet(FBSQL.SelectAllFrom(TimeTableID).Query);
   DataSet.Locate('ID', AID, []);
 
   for i:= 0 to High(Info) do begin
-    Info[i].FieldID:= DataSet.FieldByName(ConflictTypes[AConflictType].Columns[i]).AsInteger;
+    Info[i].FieldID:= DataSet.FieldByName(ConflictTypes[AConflictType].SameColumns[i]).AsInteger;
     for j:= 0 to High(Tables[TimeTableID].Fields) do
       if (Tables[TimeTableID].Fields[j] is TLink) and
-        (Tables[TimeTableID].Fields[j].FDBName = ConflictTypes[AConflictType].Columns[i]) then
+        (Tables[TimeTableID].Fields[j].FDBName = ConflictTypes[AConflictType].SameColumns[i]) then
           Info[i].TableID:= (Tables[TimeTableID].Fields[j] as TLink).RefTable;
   end;
 

@@ -62,7 +62,8 @@ type
 
   TConflictType = record
     Name: String;
-    Columns: array of String;
+    SameColumns: array of String;
+    DifferentColumns: array of String;
   end;
 
 var
@@ -117,16 +118,21 @@ end;
 
 { TConflictType }
 
-procedure AddConflictType(AName: String; AColumns: array of String);
+procedure AddConflictType(AName: String; ASameColumns: array of String;
+  ADifferentColumns: array of String);
 var
   i: Integer;
 begin
   SetLength(ConflictTypes, Length(ConflictTypes) + 1);
   ConflictTypes[High(ConflictTypes)].Name:= AName;
   with ConflictTypes[High(ConflictTypes)] do begin
-    SetLength(Columns, Length(AColumns));
-    for i:= 0 to High(AColumns) do
-      Columns[i]:= AColumns[i];
+    SetLength(SameColumns, Length(ASameColumns));
+    for i:= 0 to High(ASameColumns) do
+      SameColumns[i]:= ASameColumns[i];
+
+    SetLength(DifferentColumns, Length(ADifferentColumns));
+    for i:= 0 to High(ADifferentColumns) do
+      DifferentColumns[i]:= ADifferentColumns[i];
   end;
 end;
 
@@ -174,11 +180,15 @@ TTable.AddTable('TIMETABLE', 'Расписание')
    .AddField(TLink.Create('WEEKDAY_ID', 'День недели', 6, 0, True, 200))
    .AddField(TLink.Create('LESSON_TIME_ID', 'Время', 3, 0, True, 200));
 
-AddConflictType('В одной аудитории одновременно ведут 2-а перподавателя',
-  ['CLASSROOM_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID']);
-AddConflictType('Преподаватель одновременно ведет пары в 2-ух разных аудиториях',
-  ['TEACHER_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID']);
-AddConflictType('У 1-ой группы одновременно проходит несколько пар',
-  ['GROUP_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID']);
+AddConflictType('В одной аудитории одновременно ведут два перподавателя',
+  ['CLASSROOM_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID'], ['TEACHER_ID']);
+AddConflictType('Преподаватель одновременно ведет пары в двух разных аудиториях',
+  ['TEACHER_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID'], ['CLASSROOM_ID']);
+AddConflictType('У одной группы одновременно проходят разные пары',
+  ['GROUP_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID'], ['LESSON_ID']);
+AddConflictType('У одной группы одновременно проходят пары в разных аудиториях',
+  ['GROUP_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID'], ['CLASSROOM_ID']);
+AddConflictType('Одинаковые записи',
+  ['LESSON_ID', 'LESSON_TYPE_ID', 'TEACHER_ID', 'GROUP_ID', 'CLASSROOM_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID'], []);
 end.
 

@@ -54,7 +54,6 @@ type
     MSaveAs: TMenuItem;
     MFile: TMenuItem;
     MTreeConflicts: TMenuItem;
-    MDirectoryConflicts: TMenuItem;
     Panel: TPanel;
     PanelLeft: TPanel;
     SaveDialog: TSaveDialog;
@@ -136,6 +135,7 @@ begin
 
   FillDimensionsComboBox();
   TConflictsForm.CheckConflicts();
+  ButShowTable.Click;
 end;
 
 procedure TTimetableForm.DrawGridDblClick(Sender: TObject);
