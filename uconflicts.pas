@@ -21,7 +21,7 @@ type
   private
     FBSQL: TSQL;
     VisibleIDs: array of Integer;
-    class procedure CheckOverflowConflict();
+    class procedure CheckOverflowConflict(ACurrTConf: Integer);
     class procedure AddToConflicts(AConflictType, ACurrConflict, AId: Integer);
     procedure UpdateTreeView(Sender: TObject);
     function GetConflictInfo(AConflictType, AID: Integer): String;
@@ -88,8 +88,10 @@ begin
   SetLength(UsedRecord, RecCount);
 
   for i:= 0 to High(ConflictTypes) do begin
-    if not(ConflictTypes[i] is TCompareConf) then
-      Continue
+    if not(ConflictTypes[i] is TCompareConf) then begin
+      CheckOverflowConflict(i);
+      Continue;
+    end
     else
       CompConf:= ConflictTypes[i] as TCompareConf;
 
@@ -158,9 +160,65 @@ begin
     [High(Conflicts[AConflictType][High(Conflicts[AConflictType])])]:= AId;
 end;
 
-class procedure TConflictsForm.CheckOverflowConflict;
+class procedure TConflictsForm.CheckOverflowConflict(ACurrTConf: Integer);
+var
+  FFBSQL: TSQL;
+  DataSet, DataSetInfo: TDataSet;
+  OverflowConf: TOverflowConf;
+  i, Capacity, Students, CurrConf: Integer;
+  CurrRecord, SameRecs: array of Integer;
+  IsSame: Boolean;
 begin
+  FFBSQL:= TSQL.Create;
+  OverflowConf:= ConflictTypes[ACurrTConf] as TOverflowConf;
+  DataSet:= CreateDataSet(FFBSQL.SelectAllFrom(TimeTableID).OrderBy(OverflowConf.SameColumns).Query);
+  DataSetInfo:= CreateDataSet(FFBSQL.SelectAllFrom(TimeTableID).InnerJoin().OrderBy(OverflowConf.SameColumns).Query);
 
+  SetLength(CurrRecord, Length(OverflowConf.SameColumns));
+  for i:= 0 to High(OverflowConf.SameColumns) do
+    CurrRecord[i]:= DataSet.FieldByName(OverflowConf.SameColumns[i]).AsInteger;
+  DataSetInfo.Locate('ID', DataSet.Fields.Fields[0].AsInteger, []);
+  Capacity:= DataSetInfo.FieldByName(OverflowConf.CapacityColumn).AsInteger;
+  Students:= DataSetInfo.FieldByName(OverflowConf.CountColumn).AsInteger;
+  SetLength(SameRecs, 1);
+  SameRecs[0]:= DataSet.Fields.Fields[0].AsInteger;
+
+  DataSet.Next;
+  CurrConf:= 0;
+  while(not DataSet.EOF) do begin
+    IsSame:= True;
+    for i:= 0 to High(CurrRecord) do begin
+      if CurrRecord[i] <> DataSet.FieldByName(OverflowConf.SameColumns[i]).AsInteger then begin
+        IsSame:= False;
+        Break;
+      end;
+    end;
+
+    if IsSame then begin
+      SetLength(SameRecs, Length(SameRecs) + 1);
+      SameRecs[High(SameRecs)]:= DataSet.Fields.Fields[0].AsInteger;
+      DataSetInfo.Locate('ID', SameRecs[High(SameRecs)], []);
+      Students+= DataSetInfo.FieldByName(OverflowConf.CountColumn).AsInteger;
+    end
+    else begin
+      if Students > Capacity then begin
+        for i:= 0 to High(SameRecs) do
+          AddToConflicts(ACurrTConf, CurrConf, SameRecs[i]);
+
+        Inc(CurrConf);
+      end;
+
+      for i:= 0 to High(OverflowConf.SameColumns) do
+        CurrRecord[i]:= DataSet.FieldByName(OverflowConf.SameColumns[i]).AsInteger;
+      DataSetInfo.Locate('ID', DataSet.Fields.Fields[0].AsInteger, []);
+      Capacity:= DataSetInfo.FieldByName(OverflowConf.CapacityColumn).AsInteger;
+      Students:= DataSetInfo.FieldByName(OverflowConf.CountColumn).AsInteger;
+      SetLength(SameRecs, 1);
+      SameRecs[0]:= DataSet.Fields.Fields[0].AsInteger;
+    end;
+
+    DataSet.Next;
+  end;
 end;
 
 procedure TConflictsForm.FormCreate(Sender: TObject);
@@ -185,8 +243,6 @@ procedure TConflictsForm.UpdateTreeView(Sender: TObject);
 var
   RecStr: String;
   SelectedCols: array of String;
-  CompConf: TCompareConf;
-  OverflowConf: TOverflowConf;
   IsFind: Boolean;
   ID: ^Integer;
   i, j, k, g: Integer;
