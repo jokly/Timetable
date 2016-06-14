@@ -199,21 +199,14 @@ begin
       end;
       MarginTop+= 8;
 
-      for j:= 0 to High(Conflicts) do begin
-        for k:= 0 to High(Conflicts[j]) do begin
-          for g:= 0 to High(Conflicts[j][k]) do begin
-            if Conflicts[j][k][g] = FTable[aRow - 1][aCol - 1][i].ID then begin
-              //Warning icon
-              CellsButtons[aRow - 1][aCol - 1].Warning:= Rect(
-                aRect.Right - IconSize - Margin,
-                aRect.Top + Margin,
-                aRect.Right - Margin, aRect.Top + IconSize + Margin);
-              DrawGrid.Canvas.Draw(aRect.Right - IconSize -  Margin,
-                aRect.Top + Margin, WarningPic.Graphic);
-              Break;
-            end;
-          end;
-        end;
+      //Warning icon
+      if TConflictsForm.IsRecConflict(FTable[aRow - 1][aCol - 1][i].ID) then begin
+        CellsButtons[aRow - 1][aCol - 1].Warning:= Rect(
+          aRect.Right - IconSize - Margin,
+          aRect.Top + Margin,
+          aRect.Right - Margin, aRect.Top + IconSize + Margin);
+        DrawGrid.Canvas.Draw(aRect.Right - IconSize -  Margin,
+          aRect.Top + Margin, WarningPic.Graphic);
       end;
 
       //Delete icon

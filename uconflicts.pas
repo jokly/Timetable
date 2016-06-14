@@ -29,6 +29,7 @@ type
   public
     constructor Create(AIDs: array of Integer); overload;
     class procedure CheckConflicts();
+    class function IsRecConflict(AID: Integer): Boolean;
   end;
 
 var
@@ -69,8 +70,8 @@ var
   FFBSQL: TSQL;
   DataSet: TDataSet;
   SameFields, DifFields: array of Integer;
-  IsConflict: Boolean;
   UsedRecord: array of Boolean;
+  IsConflict: Boolean;
 begin
   SetLength(Conflicts, 0);
   SetLength(Conflicts, Length(ConflictTypes));
@@ -146,6 +147,25 @@ begin
       end;
     end;
   end;
+end;
+
+class function TConflictsForm.IsRecConflict(AID: Integer): Boolean;
+var
+  IsConf: Boolean;
+  j, k, g: Integer;
+begin
+  IsConf:= False;
+  for j:= 0 to High(Conflicts) do begin
+    for k:= 0 to High(Conflicts[j]) do begin
+      for g:= 0 to High(Conflicts[j][k]) do begin
+        if Conflicts[j][k][g] = AID then begin
+          IsConf:= True;
+          Break;
+        end;
+      end;
+    end;
+  end;
+  Result:= IsConf;
 end;
 
 class procedure TConflictsForm.AddToConflicts(AConflictType, ACurrConflict, AId: Integer);
