@@ -5,7 +5,7 @@ unit UConverter;
 interface
 
 uses
-  Classes, SysUtils, UMetadata, comobj, UFilter;
+  Classes, SysUtils, UMetadata, comobj, UFilter, UConflicts;
 
 type
 
@@ -75,8 +75,9 @@ function TConverter.ConvertToHtml(ARowsCaption, AColumnsCaption: TCaps;
   ATable: TTimeTable; AFieldsName: TFieldsName; IsShowFields: Boolean;
   Filters: TFiltersStrings): TStringList;
 var
-  row, col, i, j: Integer;
+  row, col, i, j, k, g: Integer;
   HtmlText: String;
+  IsConflict: Boolean;
 begin
   HtmlText:= '<!DOCTYPE html>' + Enter + OpenTag('html') + OpenTag('head') +
     SimpleTag('meta charset="utf-8"') + OpenTag('title') + 'Расписание' +
@@ -94,7 +95,6 @@ begin
       HtmlText+= OpenTag('td') + Filters[i].Operation + CloseTag('td');
       HtmlText+= OpenTag('td') + Filters[i].Value + CloseTag('td');
       HtmlText+= CloseTag('tr');
-
     end;
     HtmlText+= CloseTag('table') + SimpleTag('br') + SimpleTag('br');
   end;
@@ -114,7 +114,22 @@ begin
       HtmlText+= OpenTag('td');
 
       for i:= 0 to High(ATable[row][col]) do begin
-        HtmlText+= OpenTag('p');
+        IsConflict:= False;
+        for j:= 0 to High(Conflicts) do begin
+          for k:= 0 to High(Conflicts[j]) do begin
+            for g:= 0 to High(Conflicts[j][k]) do begin
+              if Conflicts[j][k][g] = ATable[row][col][i].ID then begin
+                IsConflict:= True;
+                Break;
+              end;
+            end;
+          end;
+        end;
+        if IsConflict then
+          HtmlText+= OpenTag('p style = "display: block; background: #FF7B00;"')
+        else
+          HtmlText+= OpenTag('p');
+
         for j:= 0 to High(ATable[row][col][i].Rec) do begin
           if IsShowFields then
             HtmlText+= AFieldsName[j] + ': ';
@@ -145,13 +160,13 @@ begin
     '}' +
     'th, td:first-child {' +
     'background: #AFCDE7;' +
-    'color: white;' +
+    'color: #fff;' +
     'padding: 10px 20px;' +
     '}' +
     'th, td {' +
     'border-style: solid;' +
     'border-width: 0 1px 1px 0;' +
-    'border-color: white;' +
+    'border-color: #fff;' +
     '}' +
     'td {' +
     'background: #D8E6F3;' +

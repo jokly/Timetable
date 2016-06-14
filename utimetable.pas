@@ -210,6 +210,7 @@ begin
                 aRect.Right - Margin, aRect.Top + IconSize + Margin);
               DrawGrid.Canvas.Draw(aRect.Right - IconSize -  Margin,
                 aRect.Top + Margin, WarningPic.Graphic);
+              Break;
             end;
           end;
         end;
