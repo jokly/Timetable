@@ -19,6 +19,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure TreeViewChange(Sender: TObject; Node: TTreeNode);
   private
+    FBSQL: TSQL;
     VisibleIDs: array of Integer;
     class procedure AddToConflicts(AConflictType, ACurrConflict, AId: Integer);
     procedure UpdateTreeView(Sender: TObject);
@@ -63,7 +64,7 @@ end;
 class procedure TConflictsForm.CheckConflicts();
 var
   i, j, k, g, CurrConflict, RecCount: Integer;
-  FBSQL: TSQL;
+  FFBSQL: TSQL;
   DataSet: TDataSet;
   SameFields, DifFields: array of Integer;
   IsConflict: Boolean;
@@ -72,8 +73,8 @@ begin
   SetLength(Conflicts, 0);
   SetLength(Conflicts, Length(ConflictTypes));
 
-  FBSQL:= TSQL.Create;
-  DataSet:= CreateDataSet(FBSQL.SelectAllFrom(TimeTableID).Query);
+  FFBSQL:= TSQL.Create;
+  DataSet:= CreateDataSet(FFBSQL.SelectAllFrom(TimeTableID).Query);
 
   RecCount:= 0;
   DataSet.First;
@@ -170,8 +171,9 @@ end;
 
 procedure TConflictsForm.UpdateTreeView(Sender: TObject);
 var
-  FBSQL: TSQL;
   RecStr: String;
+  SelectedCols: array of String;
+  IsFind: Boolean;
   ID: ^Integer;
   i, j, k, g: Integer;
   TypeNode, ConfNode, Node, DelNode: TTreeNode;
@@ -181,19 +183,35 @@ begin
   TreeView.Items.Clear;
 
   FBSQL:= TSQL.Create;
-  SQLQuery.Close;
-  SQLQuery.SQL.Text:= FBSQL.SelectAllFrom(7).InnerJoin().OrderBy(['ID']).Query;
-  SQLQuery.Open;
 
   for i:= 0 to High(Conflicts) do begin
     TypeNode:= TreeView.Items.Add(Nil, ConflictTypes[i].Name);
+    SetLength(SelectedCols, 0);
+    for j:= 0 to High(Tables[TimeTableID].Fields) do begin
+      IsFind:= False;
+      for k:= 0 to High(ConflictTypes[i].SameColumns) do begin
+        if ConflictTypes[i].SameColumns[k] = Tables[TimeTableID].Fields[j].FDBName then begin
+          IsFind:= True;
+          Break;
+        end;
+      end;
+      if not IsFind then begin
+        SetLength(SelectedCols, Length(SelectedCols) + 1);
+        SelectedCols[High(SelectedCols)]:= Tables[TimeTableID].Fields[j].FDBName;
+      end;
+    end;
+    SQLQuery.Close;
+    SQLQuery.SQL.Text:= FBSQL.SelectFrom(TimeTableID, SelectedCols).InnerJoin().OrderBy(['ID']).Query;
+    SQLQuery.Open;
     for j:= 0 to High(Conflicts[i]) do begin
       ConfNode:= TreeView.Items.AddChild(TypeNode, GetConflictInfo(i, Conflicts[i][j][0]));
       for k:= 0 to High(Conflicts[i][j]) do begin
         DataSource.DataSet.Locate('ID', Conflicts[i][j][k], []);
         RecStr:= '';
+        if Length(ConflictTypes[i].SameColumns) = (Length(Tables[TimeTableID].Fields) - 1) then
+          RecStr:= DataSource.DataSet.Fields.Fields[0].AsString + ' ';
         for g:= 1 to DataSource.DataSet.FieldCount - 1 do
-          RecStr += DataSource.DataSet.Fields.Fields[g].AsString + ' | ';
+          RecStr += DataSource.DataSet.Fields.Fields[g].AsString + ' ';
         New(ID);
         ID^:= DataSource.DataSet.Fields.Fields[0].AsInteger;
         TreeView.Items.AddChildObject(ConfNode, RecStr, ID);
@@ -248,7 +266,6 @@ var
   i, j: Integer;
   Info: array of TColumn;
   DataSet: TDataSet;
-  FBSQL: TSQL;
 begin
   SetLength(Info, Length(ConflictTypes[AConflictType].SameColumns));
   FBSQL:= TSQL.Create;
@@ -270,7 +287,6 @@ begin
     for j:= 1 to DataSet.FieldCount - 1 do
       Result+= DataSet.Fields.Fields[j].AsString + ' ';
   end;
-
 end;
 
 procedure TConflictsForm.TreeViewChange(Sender: TObject; Node: TTreeNode);

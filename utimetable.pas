@@ -134,7 +134,6 @@ begin
   WarningPic.LoadFromFile('img/warning.bmp');
 
   FillDimensionsComboBox();
-  TConflictsForm.CheckConflicts();
   ButShowTable.Click;
 end;
 
@@ -495,6 +494,7 @@ begin
 
   FillTable();
   SetSizeCells();
+  TConflictsForm.CheckConflicts();
   DrawGrid.Invalidate;
   ButShowTable.Enabled:= False;
 end;

@@ -25,6 +25,7 @@ type
       TableID: Integer;
       Columns: array of TColumn;
       function SelectAllFrom(ATableId: Integer): TSQL;
+      function SelectFrom(ATableId: Integer; AColumns: array of String): TSQL;
       function InnerJoin(): TSQL;
       function Where(AConditions: array of TCondition): TSQL;
       function OrderBy(AFields: array of String): TSQL;
@@ -70,16 +71,54 @@ begin
   Result:= Self;
 end;
 
-function TSQL.InnerJoin: TSQL;
+function TSQL.SelectFrom(ATableId: Integer; AColumns: array of String): TSQL;
+var
+  i, j: Integer;
+  IsFind: Boolean;
+begin
+  TableID:= ATableId;
+  SetLength(Columns, 0);
+  Query:= 'SELECT ';
+  with Tables[ATableId] do begin
+    for i:= 0 to High(Fields) do begin
+      IsFind:= False;
+      for j:= 0 to High(AColumns) do
+        if Fields[i].FDBName = AColumns[j] then
+           IsFind:= True;
+      if (Fields[i].Visible) and (IsFind) then begin
+         Query+= TDBName + '.' + Fields[i].FDBName + ',';
+         AddColumn(ATableId, i);
+      end;
+    end;
+    Delete(Query, High(Query), 1);
+    Query+= ' FROM ' + TDBName;
+  end;
+  Result:= Self;
+end;
+
+function TSQL.InnerJoin(): TSQL;
 var
   i, j: Integer;
   Field: TField;
+  IsFind: Boolean;
+  FColumns: array of TColumn;
 begin
+  SetLength(FColumns, Length(Columns));
+  for i:= 0 to High(Columns) do
+    FColumns[i]:= Columns[i];
   SetLength(Columns, 0);
   Query:= 'SELECT ';
   with Tables[TableId] do begin
     for i:= 0 to High(Fields) do begin
-      if Fields[i] is TLink then begin
+      IsFind:= False;
+      for j:= 0 to High(FColumns) do begin
+        if (FColumns[j].TableID = TableID) and
+          (Fields[FColumns[j].FieldID].FDBName = Fields[i].FDBName) then begin
+             IsFind:= True;
+             Break;
+          end;
+      end;
+      if IsFind and (Fields[i] is TLink) then begin
          with Fields[i] as TLink do begin
            for j:= 0 to High(Tables[RefTable].Fields) do begin
              Field:= Tables[RefTable].Fields[j];
@@ -90,7 +129,7 @@ begin
            end;
          end;
       end
-      else if Fields[i].Visible then begin
+      else if IsFind and Fields[i].Visible then begin
         Query+= TDBName + '.' + Fields[i].FDBName + ',';
         AddColumn(TableID, i);
       end;

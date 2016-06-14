@@ -1,7 +1,7 @@
 object ConflictsForm: TConflictsForm
-  Left = 38
+  Left = 377
   Height = 484
-  Top = 81
+  Top = 78
   Width = 737
   Caption = 'Конфликты'
   ClientHeight = 484

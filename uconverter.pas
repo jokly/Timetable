@@ -43,8 +43,9 @@ procedure TConverter.SaveToHtml(AFileName: String; ARowsCaption, AColumnsCaption
         ATable: TTimeTable; AFieldsName: TFieldsName; IsShowFields: Boolean;
         Filters: TFiltersStrings);
 begin
-  ConvertToHtml(ARowsCaption, AColumnsCaption, ATable, AFieldsName, IsShowFields,
-  Filters).SaveToFile(AFileName);
+  ConvertToHtml(
+    ARowsCaption, AColumnsCaption, ATable, AFieldsName, IsShowFields, Filters).
+      SaveToFile(AFileName);
 end;
 
 procedure TConverter.SaveToExcel(AFileName: String; ARowsCaption, AColumnsCaption: TCaps;
@@ -93,6 +94,7 @@ begin
       HtmlText+= OpenTag('td') + Filters[i].Operation + CloseTag('td');
       HtmlText+= OpenTag('td') + Filters[i].Value + CloseTag('td');
       HtmlText+= CloseTag('tr');
+
     end;
     HtmlText+= CloseTag('table') + SimpleTag('br') + SimpleTag('br');
   end;
