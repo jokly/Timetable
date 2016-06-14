@@ -60,14 +60,31 @@ type
 
   { TConflictType }
 
-  TConflictType = record
+  TConflict = class(TObject)
     Name: String;
     SameColumns: array of String;
+
+    constructor Create(AName: String; ASameColumns: array of String);
+  end;
+
+  { TCompareConf }
+
+  TCompareConf = class(TConflict)
     DifferentColumns: array of String;
+
+    constructor Create(AName: String; ASameColumns, ADifferentColumns: array of String);
+  end;
+
+  { TOverflowConf }
+
+  TOverflowConf = class(TConflict)
+    CapacityColumn, CountColumn: String;
+
+    constructor Create(AName: String; ACapacityColumn, ACountColumn: String; ASameColumns: array of String);
   end;
 
 var
-  ConflictTypes: array of TConflictType;
+  ConflictTypes: array of TConflict;
   Tables: array of TTable;
 
 implementation
@@ -118,33 +135,61 @@ end;
 
 { TConflictType }
 
-procedure AddConflictType(AName: String; ASameColumns: array of String;
-  ADifferentColumns: array of String);
+procedure AddConflictType(AConflict: TConflict);
+begin
+  SetLength(ConflictTypes, Length(ConflictTypes) + 1);
+  ConflictTypes[High(ConflictTypes)]:= AConflict;
+end;
+
+{ TConflict }
+
+constructor TConflict.Create(AName: String; ASameColumns: array of String);
 var
   i: Integer;
 begin
-  SetLength(ConflictTypes, Length(ConflictTypes) + 1);
-  ConflictTypes[High(ConflictTypes)].Name:= AName;
-  with ConflictTypes[High(ConflictTypes)] do begin
-    SetLength(SameColumns, Length(ASameColumns));
-    for i:= 0 to High(ASameColumns) do
-      SameColumns[i]:= ASameColumns[i];
+  inherited Create;
 
-    SetLength(DifferentColumns, Length(ADifferentColumns));
-    for i:= 0 to High(ADifferentColumns) do
-      DifferentColumns[i]:= ADifferentColumns[i];
-  end;
+  Name:= AName;
+  SetLength(SameColumns, Length(ASameColumns));
+  for i:= 0 to High(SameColumns) do
+    SameColumns[i]:= ASameColumns[i];
+end;
+
+{ TOverflowConf }
+
+constructor TOverflowConf.Create(AName: String; ACapacityColumn, ACountColumn: String;
+  ASameColumns: array of String);
+begin
+  inherited Create(AName, ASameColumns);
+
+  CapacityColumn:= ACapacityColumn;
+  CountColumn:= ACountColumn;
+end;
+
+{ TCompareConf }
+
+constructor TCompareConf.Create(AName: String; ASameColumns, ADifferentColumns: array of String);
+var
+  i: Integer;
+begin
+  inherited Create(AName, ASameColumns);
+
+  SetLength(DifferentColumns, Length(ADifferentColumns));
+  for i:= 0 to High(DifferentColumns) do
+    DifferentColumns[i]:= ADifferentColumns[i];
 end;
 
 initialization
 
 TTable.AddTable('CLASSROOMS', 'Аудитории')
-   .AddField(TField.Create('ID', 'ID', True, 0))
-   .AddField(TField.Create('NAME', 'Аудитория', True, 100));
+ .AddField(TField.Create('ID', 'ID', True, 0))
+ .AddField(TField.Create('NAME', 'Аудитория', True, 100))
+ .AddField(TField.Create('CAPACITY', 'Вместимость', True, 80));
 
 TTable.AddTable('GROUPS', 'Группы')
-   .AddField(TField.Create('ID', 'ID', True, 0))
-   .AddField(TField.Create('NAME', 'Группа', True, 100));
+ .AddField(TField.Create('ID', 'ID', True, 0))
+ .AddField(TField.Create('NAME', 'Группа', True, 100))
+ .AddField(TField.Create('STUDENTS', 'Студентов', True, 70));
 
 TTable.AddTable('LESSONS', 'Предметы')
    .AddField(TField.Create('ID', 'ID', True, 0))
@@ -180,15 +225,18 @@ TTable.AddTable('TIMETABLE', 'Расписание')
    .AddField(TLink.Create('WEEKDAY_ID', 'День недели', 6, 0, True, 200))
    .AddField(TLink.Create('LESSON_TIME_ID', 'Время', 3, 0, True, 200));
 
-AddConflictType('В одной аудитории одновременно ведут два перподавателя',
-  ['CLASSROOM_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID'], ['TEACHER_ID']);
-AddConflictType('Преподаватель одновременно ведет пары в двух разных аудиториях',
-  ['TEACHER_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID'], ['CLASSROOM_ID']);
-AddConflictType('У одной группы одновременно проходят разные пары',
-  ['GROUP_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID'], ['LESSON_ID']);
-AddConflictType('У одной группы одновременно проходят пары в разных аудиториях',
-  ['GROUP_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID'], ['CLASSROOM_ID']);
-AddConflictType('Одинаковые записи',
-  ['LESSON_ID', 'LESSON_TYPE_ID', 'TEACHER_ID', 'GROUP_ID', 'CLASSROOM_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID'], []);
+AddConflictType(TCompareConf.Create('В одной аудитории одновременно ведут два перподавателя',
+  ['CLASSROOM_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID'], ['TEACHER_ID']));
+AddConflictType(TCompareConf.Create('Преподаватель одновременно ведет пары в двух разных аудиториях',
+  ['TEACHER_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID'], ['CLASSROOM_ID']));
+AddConflictType(TCompareConf.Create('У одной группы одновременно проходят разные пары',
+  ['GROUP_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID'], ['LESSON_ID']));
+AddConflictType(TCompareConf.Create('У одной группы одновременно проходят пары в разных аудиториях',
+  ['GROUP_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID'], ['CLASSROOM_ID']));
+AddConflictType(TCompareConf.Create('Одинаковые записи',
+  ['LESSON_ID', 'LESSON_TYPE_ID', 'TEACHER_ID', 'GROUP_ID', 'CLASSROOM_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID'], []));
+AddConflictType(TOverflowConf.Create('Аудитория переполнена', 'CAPACITY', 'STUDENTS',
+  ['CLASSROOM_ID', 'WEEKDAY_ID', 'LESSON_TIME_ID']));
+
 end.
 

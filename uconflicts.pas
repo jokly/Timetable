@@ -21,6 +21,7 @@ type
   private
     FBSQL: TSQL;
     VisibleIDs: array of Integer;
+    class procedure CheckOverflowConflict();
     class procedure AddToConflicts(AConflictType, ACurrConflict, AId: Integer);
     procedure UpdateTreeView(Sender: TObject);
     function GetConflictInfo(AConflictType, AID: Integer): String;
@@ -64,6 +65,7 @@ end;
 class procedure TConflictsForm.CheckConflicts();
 var
   i, j, k, g, CurrConflict, RecCount: Integer;
+  CompConf: TCompareConf;
   FFBSQL: TSQL;
   DataSet: TDataSet;
   SameFields, DifFields: array of Integer;
@@ -86,6 +88,11 @@ begin
   SetLength(UsedRecord, RecCount);
 
   for i:= 0 to High(ConflictTypes) do begin
+    if not(ConflictTypes[i] is TCompareConf) then
+      Continue
+    else
+      CompConf:= ConflictTypes[i] as TCompareConf;
+
     CurrConflict:= -1;
     for g:= 0 to High(UsedRecord) do
       UsedRecord[g]:= False;
@@ -96,29 +103,29 @@ begin
       if UsedRecord[j] then
           Continue;
 
-      SetLength(SameFields, Length(ConflictTypes[i].SameColumns) + 1);
-      for g:= 0 to High(ConflictTypes[i].SameColumns) do
-        SameFields[g]:= DataSet.FieldByName(ConflictTypes[i].SameColumns[g]).AsInteger;
+      SetLength(SameFields, Length(CompConf.SameColumns) + 1);
+      for g:= 0 to High(CompConf.SameColumns) do
+        SameFields[g]:= DataSet.FieldByName(CompConf.SameColumns[g]).AsInteger;
       SameFields[g + 1]:= DataSet.FieldByName('ID').AsInteger;
 
-      SetLength(DifFields, Length(ConflictTypes[i].DifferentColumns));
-      for g:= 0 to High(ConflictTypes[i].DifferentColumns) do
-        DifFields[g]:= DataSet.FieldByName(ConflictTypes[i].DifferentColumns[g]).AsInteger;
+      SetLength(DifFields, Length(CompConf.DifferentColumns));
+      for g:= 0 to High(CompConf.DifferentColumns) do
+        DifFields[g]:= DataSet.FieldByName(CompConf.DifferentColumns[g]).AsInteger;
 
       for k:= j + 1 to RecCount - 1 do begin
         DataSet.Next;
         if UsedRecord[k] then
           Continue;
         IsConflict:= True;
-        for g:= 0 to High(ConflictTypes[i].SameColumns) do begin
-          if SameFields[g] <> DataSet.FieldByName(ConflictTypes[i].SameColumns[g]).AsInteger then begin
+        for g:= 0 to High(CompConf.SameColumns) do begin
+          if SameFields[g] <> DataSet.FieldByName(CompConf.SameColumns[g]).AsInteger then begin
             IsConflict:= False;
             Break;
           end;
         end;
         if IsConflict then begin
-          for g:= 0 to High(ConflictTypes[i].DifferentColumns) do begin
-            if DifFields[g] = DataSet.FieldByName(ConflictTypes[i].DifferentColumns[g]).AsInteger then begin
+          for g:= 0 to High(CompConf.DifferentColumns) do begin
+            if DifFields[g] = DataSet.FieldByName(CompConf.DifferentColumns[g]).AsInteger then begin
               IsConflict:= False;
               Break;
             end;
@@ -151,6 +158,11 @@ begin
     [High(Conflicts[AConflictType][High(Conflicts[AConflictType])])]:= AId;
 end;
 
+class procedure TConflictsForm.CheckOverflowConflict;
+begin
+
+end;
+
 procedure TConflictsForm.FormCreate(Sender: TObject);
 begin
   UpdateTreeView(Application);
@@ -173,6 +185,8 @@ procedure TConflictsForm.UpdateTreeView(Sender: TObject);
 var
   RecStr: String;
   SelectedCols: array of String;
+  CompConf: TCompareConf;
+  OverflowConf: TOverflowConf;
   IsFind: Boolean;
   ID: ^Integer;
   i, j, k, g: Integer;
