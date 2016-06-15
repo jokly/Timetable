@@ -30,6 +30,7 @@ type
     constructor Create(AIDs: array of Integer); overload;
     class procedure CheckConflicts();
     class function IsRecConflict(AID: Integer): Boolean;
+    class function CheckIntersect(AStart1, AEnd1, AStart2, AEnd2: TDate): Boolean;
   end;
 
 var
@@ -70,6 +71,7 @@ var
   FFBSQL: TSQL;
   DataSet: TDataSet;
   SameFields, DifFields: array of Integer;
+  StartPer, EndPer: TDate;
   UsedRecord: array of Boolean;
   IsConflict: Boolean;
 begin
@@ -89,12 +91,14 @@ begin
   SetLength(UsedRecord, RecCount);
 
   for i:= 0 to High(ConflictTypes) do begin
-    if not(ConflictTypes[i] is TCompareConf) then begin
+    if ConflictTypes[i] is TOverflowConf then begin
       CheckOverflowConflict(i);
       Continue;
     end
+    else if ConflictTypes[i] is TCompareConf then
+      CompConf:= ConflictTypes[i] as TCompareConf
     else
-      CompConf:= ConflictTypes[i] as TCompareConf;
+      Continue;
 
     CurrConflict:= -1;
     for g:= 0 to High(UsedRecord) do
@@ -106,6 +110,8 @@ begin
       if UsedRecord[j] then
           Continue;
 
+      StartPer:= DataSet.FieldByName('START_PERIOD').AsDateTime;
+      EndPer:= DataSet.FieldByName('END_PERIOD').AsDateTime;
       SetLength(SameFields, Length(CompConf.SameColumns) + 1);
       for g:= 0 to High(CompConf.SameColumns) do
         SameFields[g]:= DataSet.FieldByName(CompConf.SameColumns[g]).AsInteger;
@@ -119,6 +125,9 @@ begin
         DataSet.Next;
         if UsedRecord[k] then
           Continue;
+        if not CheckIntersect(StartPer, EndPer, DataSet.FieldByName('START_PERIOD').AsDateTime,
+          DataSet.FieldByName('END_PERIOD').AsDateTime) then
+              Continue;
         IsConflict:= True;
         for g:= 0 to High(CompConf.SameColumns) do begin
           if SameFields[g] <> DataSet.FieldByName(CompConf.SameColumns[g]).AsInteger then begin
@@ -168,6 +177,17 @@ begin
   Result:= IsConf;
 end;
 
+class function TConflictsForm.CheckIntersect(AStart1, AEnd1, AStart2,
+  AEnd2: TDate): Boolean;
+begin
+  if ((AStart2 <= AStart1) and (AEnd2 >= AStart1)) or ((AStart2 <= AEnd1) and (AEnd2 >= AEnd1))
+    or ((AStart2 >= AStart1) and(AStart2 <= AEnd1) and (AEnd2 >= AStart1) and (AEnd2 <= AEnd1))
+    or ((AStart1 >= AStart2) and(AStart1 <= AEnd2) and (AEnd1 >= AStart2) and (AEnd1 <= AEnd2)) then
+    Result:= True
+  else
+    Result:= False;
+end;
+
 class procedure TConflictsForm.AddToConflicts(AConflictType, ACurrConflict, AId: Integer);
 begin
   if High(Conflicts[AConflictType]) < ACurrConflict then
@@ -185,14 +205,21 @@ var
   FFBSQL: TSQL;
   DataSet, DataSetInfo: TDataSet;
   OverflowConf: TOverflowConf;
+  StartPer, EndPer: TDate;
   i, Capacity, Students, CurrConf: Integer;
   CurrRecord, SameRecs: array of Integer;
+  OrderedCols: array of String;
   IsSame: Boolean;
 begin
   FFBSQL:= TSQL.Create;
   OverflowConf:= ConflictTypes[ACurrTConf] as TOverflowConf;
-  DataSet:= CreateDataSet(FFBSQL.SelectAllFrom(TimeTableID).OrderBy(OverflowConf.SameColumns).Query);
-  DataSetInfo:= CreateDataSet(FFBSQL.SelectAllFrom(TimeTableID).InnerJoin().OrderBy(OverflowConf.SameColumns).Query);
+  SetLength(OrderedCols, Length(OverflowConf.SameColumns) + 2);
+  for i:= 0 to High(OverflowConf.SameColumns) do
+    OrderedCols[i]:= OverflowConf.SameColumns[i];
+  OrderedCols[High(OrderedCols) - 1]:= 'START_PERIOD';
+  OrderedCols[High(OrderedCols)]:= 'END_PERIOD';
+  DataSet:= CreateDataSet(FFBSQL.SelectAllFrom(TimeTableID).OrderBy(OrderedCols).Query);
+  DataSetInfo:= CreateDataSet(FFBSQL.SelectAllFrom(TimeTableID).InnerJoin().OrderBy(OrderedCols).Query);
 
   SetLength(CurrRecord, Length(OverflowConf.SameColumns));
   for i:= 0 to High(OverflowConf.SameColumns) do
@@ -202,15 +229,23 @@ begin
   Students:= DataSetInfo.FieldByName(OverflowConf.CountColumn).AsInteger;
   SetLength(SameRecs, 1);
   SameRecs[0]:= DataSet.Fields.Fields[0].AsInteger;
+  StartPer:= DataSet.FieldByName('START_PERIOD').AsDateTime;
+  EndPer:= DataSet.FieldByName('END_PERIOD').AsDateTime;
 
   DataSet.Next;
   CurrConf:= 0;
   while(not DataSet.EOF) do begin
     IsSame:= True;
-    for i:= 0 to High(CurrRecord) do begin
-      if CurrRecord[i] <> DataSet.FieldByName(OverflowConf.SameColumns[i]).AsInteger then begin
-        IsSame:= False;
-        Break;
+    if not CheckIntersect(StartPer, EndPer,
+      DataSet.FieldByName('START_PERIOD').AsDateTime, DataSet.FieldByName('END_PERIOD').AsDateTime) then
+          IsSame:= False;
+
+    if IsSame then begin;
+      for i:= 0 to High(CurrRecord) do begin
+        if CurrRecord[i] <> DataSet.FieldByName(OverflowConf.SameColumns[i]).AsInteger then begin
+          IsSame:= False;
+          Break;
+        end;
       end;
     end;
 
@@ -235,6 +270,8 @@ begin
       Students:= DataSetInfo.FieldByName(OverflowConf.CountColumn).AsInteger;
       SetLength(SameRecs, 1);
       SameRecs[0]:= DataSet.Fields.Fields[0].AsInteger;
+      StartPer:= DataSet.FieldByName('START_PERIOD').AsDateTime;
+      EndPer:= DataSet.FieldByName('END_PERIOD').AsDateTime;
     end;
 
     DataSet.Next;
@@ -300,7 +337,7 @@ begin
         RecStr:= '';
         if Length(ConflictTypes[i].SameColumns) = (Length(Tables[TimeTableID].Fields) - 1) then
           RecStr:= DataSource.DataSet.Fields.Fields[0].AsString + ' ';
-        for g:= 1 to DataSource.DataSet.FieldCount - 1 do
+        for g:= 0 to DataSource.DataSet.FieldCount - 1 do
           RecStr += DataSource.DataSet.Fields.Fields[g].AsString + ' ';
         New(ID);
         ID^:= DataSource.DataSet.Fields.Fields[0].AsInteger;

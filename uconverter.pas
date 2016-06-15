@@ -65,13 +65,10 @@ procedure TConverter.SaveToExcel(AFileName: String; ARowsCaption, AColumnsCaptio
         TFiltersStrings);
 var
   XL, Sheet: olevariant;
-  FilePath: String;
   i, j, row, col, counter: Integer;
   PreviousMaxRowNumber, MaxRowNumber, BeginRow, MaxRow: Integer;
   TextColor: TColor;
 begin
-  FilePath:= ExtractFilePath(AFileName);
-
   BeginRow:= 1;
   MaxRow:= BeginRow;
 
@@ -217,7 +214,7 @@ function TConverter.ConvertToHtml(ARowsCaption, AColumnsCaption: TCaps;
   ATable: TTimeTable; AFieldsName: TFieldsName; IsShowFields: Boolean;
   Filters: TFiltersStrings): TStringList;
 var
-  row, col, i, j, k, g: Integer;
+  row, col, i, j: Integer;
   HtmlText: String;
 begin
   HtmlText:= '<!DOCTYPE html>' + Enter + OpenTag('html') + OpenTag('head') +

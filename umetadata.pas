@@ -217,6 +217,8 @@ TTable.AddTable('WEEKDAYS', 'Дни недели')
 
 TTable.AddTable('TIMETABLE', 'Расписание')
    .AddField(TField.Create('ID', 'ID', True, 0))
+   .AddField(TField.Create('START_PERIOD', 'Начало действия', True, 120))
+   .AddField(TField.Create('END_PERIOD', 'Конец действия', True, 120))
    .AddField(TLink.Create('LESSON_ID', 'Предмет', 2, 0, True, 200))
    .AddField(TLink.Create('LESSON_TYPE_ID', 'Тип', 4, 0, True, 200))
    .AddField(TLink.Create('TEACHER_ID', 'Преподаватель', 5, 0, True, 200))

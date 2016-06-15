@@ -5,9 +5,10 @@ unit UTimeTable;
 interface
 
 uses
-  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, Grids,
-  StdCtrls, ExtCtrls, Menus, sqldb, math, Types, UMetadata, USQL, UFilter,
-  UDirectoryForm, UEditCard, UNotification, UConflicts, UConverter;
+  Classes, SysUtils, FileUtil, DBDateTimePicker, DateTimePicker, Forms,
+  Controls, Graphics, Dialogs, Grids, StdCtrls, ExtCtrls, Menus, DbCtrls,
+  DBExtCtrls, sqldb, math, Types, UMetadata, USQL, UFilter, UDirectoryForm,
+  UEditCard, UNotification, UConflicts, UConverter;
 
 type
 
@@ -43,10 +44,15 @@ type
     CheckBoxDisplayEmptyCol: TCheckBox;
     ComboBoxCol: TComboBox;
     ComboBoxRow: TComboBox;
+    DateTimePickerFrom: TDateTimePicker;
+    DateTimePickerTo: TDateTimePicker;
     DrawGrid: TDrawGrid;
     GroupBoxFilters: TGroupBox;
+    GroupBoxPeriod: TGroupBox;
     GroupBoxOptions: TGroupBox;
     GroupBoxDimensions: TGroupBox;
+    LFrom: TLabel;
+    LTo: TLabel;
     LabelHor: TLabel;
     LabelVer: TLabel;
     MainMenu: TMainMenu;
@@ -62,6 +68,8 @@ type
     procedure ButShowTableClick(Sender: TObject);
     procedure ButtonAddFilterClick(Sender: TObject);
     constructor Create(TableIndex: Integer); overload;
+    procedure DateTimePickerFromChange(Sender: TObject);
+    procedure DateTimePickerToChange(Sender: TObject);
     procedure DrawGridDblClick(Sender: TObject);
     procedure DrawGridDragDrop(Sender, Source: TObject; X, Y: Integer);
     procedure DrawGridDragOver(Sender, Source: TObject; X, Y: Integer;
@@ -137,6 +145,16 @@ begin
   ButShowTable.Click;
 end;
 
+procedure TTimetableForm.DateTimePickerFromChange(Sender: TObject);
+begin
+  ButShowTable.Enabled:= True;
+end;
+
+procedure TTimetableForm.DateTimePickerToChange(Sender: TObject);
+begin
+  ButShowTable.Enabled:= True;
+end;
+
 procedure TTimetableForm.DrawGridDblClick(Sender: TObject);
 var
   i: Integer;
@@ -168,7 +186,7 @@ procedure TTimetableForm.DrawGridDrawCell(Sender: TObject; aCol, aRow: Integer;
 const
   Margin = 3;
 var
-  i, j, k, g, MarginTop, TextWidth: Integer;
+  i, j, MarginTop, TextWidth: Integer;
   FRecord: array of String;
   Str: String;
 begin
@@ -504,6 +522,8 @@ var
   LField: TLink;
 begin
   for i:= 1 to High(Tables[Tag].Fields) do begin
+    if not(Tables[Tag].Fields[i] is TLink) then
+      Continue;
     LField:= Tables[Tag].Fields[i] as TLink;
     ComboBoxCol.AddItem(LField.FAppName, TObject(PtrUInt(LField.RefTable)));
     ComboBoxRow.AddItem(LField.FAppName, TObject(PtrUInt(LField.RefTable)));
@@ -576,6 +596,10 @@ begin
         SetLength(FieldsName, Length(FieldsName) + 1);
         FieldsName[High(FieldsName)]:= Tables[Ref.RefTable].Fields[j].FAppName;
       end;
+    end
+    else begin
+      SetLength(FieldsName, Length(FieldsName) + 1);
+      FieldsName[High(FieldsName)]:= Tables[Tag].Fields[i].FAppName;
     end;
   end;
 end;
@@ -586,6 +610,7 @@ var
   Conds: TConditions;
   CondRow, CondCol: TCondition;
   i, iRecord: Integer;
+  PeriodCond: String;
 begin
   FBSQL:= TSQL.Create;
 
@@ -598,13 +623,23 @@ begin
   Conds[High(Conds) - 1]:= CondCol;
   Conds[High(Conds)]:= CondRow;
 
+  PeriodCond:= 'AND ' +
+  '((:s1 <= TIMETABLE.START_PERIOD AND :s2 >= TIMETABLE.START_PERIOD) ' +
+  'OR (:s3 >= TIMETABLE.START_PERIOD AND :s4 >= TIMETABLE.START_PERIOD ' +
+    'AND :s5 <= TIMETABLE.END_PERIOD AND :s6 <= TIMETABLE.END_PERIOD) ' +
+  'OR (:s7 <= TIMETABLE.END_PERIOD AND :s8 >= TIMETABLE.END_PERIOD)) ';
+
   SQLQuery.Close;
-  SQLQuery.SQL.Text:= FBSQL.SelectAllFrom(Tag).InnerJoin().Where(Conds).Query;
+  SQLQuery.SQL.Text:= FBSQL.SelectAllFrom(Tag).InnerJoin().Where(Conds).Query + PeriodCond;
   SQLQuery.Prepare;
   for i:= 0 to High(Filters.Filters) do
-      SQLQuery.Params[i].AsString:= Filters.Filters[i].Constant.Text;
+    SQLQuery.Params[i].AsString:= Filters.Filters[i].Constant.Text;
   SQLQuery.Params[High(Conds) - 1].AsInteger:= ColumnsCaption[X].ID;
   SQLQuery.Params[High(Conds)].AsInteger:= RowsCaption[Y].ID;
+  for i:= 0 to 3 do
+    SQLQuery.Params[High(Conds) + 1 + i * 2].AsDate:= DateTimePickerFrom.Date;
+  for i:= 1 to 4 do
+    SQLQuery.Params[High(Conds) + i * 2].AsDate:= DateTimePickerTo.Date;
   SQLQuery.Open;
 
   SQLQuery.First;

@@ -1,19 +1,19 @@
 object TimetableForm: TTimetableForm
-  Left = 207
-  Height = 475
-  Top = 37
-  Width = 819
+  Left = 486
+  Height = 512
+  Top = 49
+  Width = 848
   Caption = 'Расписание'
-  ClientHeight = 455
-  ClientWidth = 819
+  ClientHeight = 492
+  ClientWidth = 848
   Menu = MainMenu
   LCLVersion = '1.6.0.4'
   Visible = True
   object DrawGrid: TDrawGrid
     Left = 0
-    Height = 293
+    Height = 330
     Top = 0
-    Width = 819
+    Width = 848
     Align = alClient
     ColCount = 1
     DefaultRowHeight = 200
@@ -34,17 +34,17 @@ object TimetableForm: TTimetableForm
   object Panel: TPanel
     Left = 0
     Height = 162
-    Top = 293
-    Width = 819
+    Top = 330
+    Width = 848
     Align = alBottom
     ClientHeight = 162
-    ClientWidth = 819
+    ClientWidth = 848
     TabOrder = 1
     object ScrollBoxFilters: TScrollBox
-      Left = 439
+      Left = 472
       Height = 160
       Top = 1
-      Width = 379
+      Width = 375
       HorzScrollBar.Page = 1
       VertScrollBar.Page = 1
       Align = alClient
@@ -54,10 +54,10 @@ object TimetableForm: TTimetableForm
       Left = 1
       Height = 160
       Top = 1
-      Width = 438
+      Width = 471
       Align = alLeft
       ClientHeight = 160
-      ClientWidth = 438
+      ClientWidth = 471
       TabOrder = 1
       object GroupBoxDimensions: TGroupBox
         Left = 5
@@ -115,7 +115,7 @@ object TimetableForm: TTimetableForm
         end
       end
       object GroupBoxOptions: TGroupBox
-        Left = 176
+        Left = 168
         Height = 144
         Top = 5
         Width = 143
@@ -161,19 +161,105 @@ object TimetableForm: TTimetableForm
         Left = 320
         Height = 59
         Top = 5
-        Width = 114
+        Width = 144
         Caption = 'Фильтры'
         ClientHeight = 39
-        ClientWidth = 110
+        ClientWidth = 140
         TabOrder = 2
         object ButtonAddFilter: TButton
-          Left = 6
+          Left = 16
           Height = 31
           Top = 0
-          Width = 96
+          Width = 104
           Caption = 'Добавить'
           OnClick = ButtonAddFilterClick
           TabOrder = 0
+        end
+      end
+      object GroupBoxPeriod: TGroupBox
+        Left = 320
+        Height = 77
+        Top = 72
+        Width = 144
+        Caption = 'Промежуток'
+        ClientHeight = 57
+        ClientWidth = 140
+        TabOrder = 3
+        object LFrom: TLabel
+          Left = 8
+          Height = 18
+          Top = 2
+          Width = 16
+          Caption = 'От'
+          Font.CharSet = RUSSIAN_CHARSET
+          Font.Height = -13
+          Font.Name = '@Arial Unicode MS'
+          Font.Pitch = fpVariable
+          Font.Quality = fqDraft
+          ParentColor = False
+          ParentFont = False
+        end
+        object LTo: TLabel
+          Left = 8
+          Height = 18
+          Top = 32
+          Width = 16
+          Caption = 'До'
+          Font.CharSet = RUSSIAN_CHARSET
+          Font.Height = -13
+          Font.Name = '@Arial Unicode MS'
+          Font.Pitch = fpVariable
+          Font.Quality = fqDraft
+          ParentColor = False
+          ParentFont = False
+        end
+        object DateTimePickerFrom: TDateTimePicker
+          Left = 40
+          Height = 23
+          Top = 2
+          Width = 79
+          CenturyFrom = 1941
+          MaxDate = 2958465
+          MinDate = -53780
+          TabOrder = 0
+          TrailingSeparator = False
+          TextForNullDate = 'NULL'
+          LeadingZeros = True
+          NullInputAllowed = False
+          Kind = dtkDate
+          TimeFormat = tf24
+          TimeDisplay = tdHMS
+          DateMode = dmComboBox
+          Date = 42248
+          Time = 0.0149253935160232
+          UseDefaultSeparators = True
+          HideDateTimeParts = []
+          MonthNames = 'Long'
+          OnChange = DateTimePickerFromChange
+        end
+        object DateTimePickerTo: TDateTimePicker
+          Left = 40
+          Height = 23
+          Top = 32
+          Width = 79
+          CenturyFrom = 1941
+          MaxDate = 2958465
+          MinDate = -53780
+          TabOrder = 1
+          TrailingSeparator = False
+          TextForNullDate = 'NULL'
+          LeadingZeros = True
+          NullInputAllowed = False
+          Kind = dtkDate
+          TimeFormat = tf24
+          TimeDisplay = tdHMS
+          DateMode = dmComboBox
+          Date = 42614
+          Time = 0.0149253935160232
+          UseDefaultSeparators = True
+          HideDateTimeParts = []
+          MonthNames = 'Long'
+          OnChange = DateTimePickerToChange
         end
       end
     end
