@@ -31,7 +31,7 @@ type
     LeftScrollBox: TScrollBox;
     SQLQuery: TSQLQuery;
     constructor Create(ATableId: Integer); overload;
-    constructor Create(ATableId: Integer; ASysConditions: array of TSystemCondition);
+    constructor Create(AName:String; ATableId: Integer; ASysConditions: array of TSystemCondition); overload;
     procedure CheckListSortItemClick(Sender: TObject; Index: Integer);
     procedure DBGridCellClick(Column: TColumn);
     procedure DBGridDblClick(Sender: TObject);
@@ -89,9 +89,12 @@ begin
       CheckListSort.Items.Add(Tables[TableID].Fields[FieldID].FAppName);
 end;
 
-constructor TDirectoryForm.Create(ATableId: Integer; ASysConditions: array of TSystemCondition);
+constructor TDirectoryForm.Create(AName:String; ATableId: Integer;
+  ASysConditions: array of TSystemCondition);
 begin
   Create(ATableId);
+
+  Caption:= Caption + ' ' + AName;
   Filters.SetSystemConditions(ASysConditions);
   FApplyButton.Click;
 end;

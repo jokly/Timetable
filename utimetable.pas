@@ -178,7 +178,8 @@ begin
     SysConditions[i + 2].Value:= Filters.Filters[i].Constant.Text;
   end;
 
-  TDirectoryForm.Create(Tag, SysConditions);
+  TDirectoryForm.Create(RowsCaption[SelectedCell.Row - 1].Value + ' | '
+    + ColumnsCaption[SelectedCell.Col - 1].Value, Tag, SysConditions);
 end;
 
 procedure TTimetableForm.DrawGridDrawCell(Sender: TObject; aCol, aRow: Integer;
@@ -412,7 +413,8 @@ begin
     for i:= 0 to High(FIDs) do
       FIDs[i]:= FTable[SelectedCell.Row - 1][SelectedCell.Col - 1][i].ID;
 
-    TConflictsForm.Create(FIDs);
+    TConflictsForm.Create(RowsCaption[SelectedCell.Row - 1].Value + ' | ' +
+      ColumnsCaption[SelectedCell.Col - 1].Value, FIDs);
   end;
 end;
 

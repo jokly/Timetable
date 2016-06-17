@@ -28,6 +28,7 @@ type
     procedure DeleteEmptyBranch(ALevel: Integer);
   public
     constructor Create(AIDs: array of Integer); overload;
+    constructor Create(AName: String; AIDs: array of Integer); overload;
     class procedure CheckConflicts();
     class function IsRecConflict(AID: Integer): Boolean;
     class function CheckIntersect(AStart1, AEnd1, AStart2, AEnd2: TDate): Boolean;
@@ -290,6 +291,13 @@ begin
   i:= Length(VisibleIDs);
 
   inherited Create(Application);
+end;
+
+constructor TConflictsForm.Create(AName: String; AIDs: array of Integer);
+begin
+  Create(AIDs);
+
+  Caption:= Caption + ' ' + AName;
 end;
 
 procedure TConflictsForm.UpdateTreeView(Sender: TObject);
