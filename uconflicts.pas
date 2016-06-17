@@ -80,6 +80,7 @@ begin
 
   FFBSQL:= TSQL.Create;
   DataSet:= CreateDataSet(FFBSQL.SelectAllFrom(TimeTableID).Query);
+  FFBSQL.Free;
 
   RecCount:= 0;
   DataSet.First;
@@ -180,12 +181,7 @@ end;
 class function TConflictsForm.CheckIntersect(AStart1, AEnd1, AStart2,
   AEnd2: TDate): Boolean;
 begin
-  if ((AStart2 <= AStart1) and (AEnd2 >= AStart1)) or ((AStart2 <= AEnd1) and (AEnd2 >= AEnd1))
-    or ((AStart2 >= AStart1) and(AStart2 <= AEnd1) and (AEnd2 >= AStart1) and (AEnd2 <= AEnd1))
-    or ((AStart1 >= AStart2) and(AStart1 <= AEnd2) and (AEnd1 >= AStart2) and (AEnd1 <= AEnd2)) then
-    Result:= True
-  else
-    Result:= False;
+  Result:= (AStart1 <= AEnd2) and (AEnd1 >= AStart2);
 end;
 
 class procedure TConflictsForm.AddToConflicts(AConflictType, ACurrConflict, AId: Integer);

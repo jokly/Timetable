@@ -624,10 +624,7 @@ begin
   Conds[High(Conds)]:= CondRow;
 
   PeriodCond:= 'AND ' +
-  '((:s1 <= TIMETABLE.START_PERIOD AND :s2 >= TIMETABLE.START_PERIOD) ' +
-  'OR (:s3 >= TIMETABLE.START_PERIOD AND :s4 >= TIMETABLE.START_PERIOD ' +
-    'AND :s5 <= TIMETABLE.END_PERIOD AND :s6 <= TIMETABLE.END_PERIOD) ' +
-  'OR (:s7 <= TIMETABLE.END_PERIOD AND :s8 >= TIMETABLE.END_PERIOD)) ';
+  '((:s1 <= TIMETABLE.END_PERIOD) AND (:s2 >= TIMETABLE.START_PERIOD))';
 
   SQLQuery.Close;
   SQLQuery.SQL.Text:= FBSQL.SelectAllFrom(Tag).InnerJoin().Where(Conds).Query + PeriodCond;
@@ -636,10 +633,8 @@ begin
     SQLQuery.Params[i].AsString:= Filters.Filters[i].Constant.Text;
   SQLQuery.Params[High(Conds) - 1].AsInteger:= ColumnsCaption[X].ID;
   SQLQuery.Params[High(Conds)].AsInteger:= RowsCaption[Y].ID;
-  for i:= 0 to 3 do
-    SQLQuery.Params[High(Conds) + 1 + i * 2].AsDate:= DateTimePickerFrom.Date;
-  for i:= 1 to 4 do
-    SQLQuery.Params[High(Conds) + i * 2].AsDate:= DateTimePickerTo.Date;
+  SQLQuery.Params[High(Conds) + 1].AsDate:= DateTimePickerFrom.Date;
+  SQLQuery.Params[High(Conds) + 2].AsDate:= DateTimePickerTo.Date;
   SQLQuery.Open;
 
   SQLQuery.First;
