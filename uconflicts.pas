@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ComCtrls,
-  DBGrids, sqldb, db, USQL, UMetadata, UDBConnection, UEditCard;
+  DBGrids, sqldb, db, USQL, UMetadata, UDBConnection, UEditCard, UNotification;
 
 type
 
@@ -426,7 +426,12 @@ var
 begin
   if Assigned(Node) and (TreeView.Selected.Level = 2) then begin
     ID:= Integer(TreeView.Selected.Data^);
-    TEditCard.Create(7, @UpdateTreeView, ID);
+    if not TNotification.IsEditable(TimeTableID) then
+     ShowMessage('Эта таблица используется в данный момент!')
+    else if not TNotification.IsEditable(TimeTableID, ID) then
+     ShowMessage('Эта запись уже редактируется!')
+    else
+      TEditCard.Create(TimeTableID, @UpdateTreeView, ID);
   end;
   TreeView.Selected:= Nil;
 end;
